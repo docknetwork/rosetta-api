@@ -112,10 +112,8 @@ const networkStatus = async (params) => {
   const currentBlockIdentifier = new Types.BlockIdentifier(currentBlock.block.header.number, currentBlock.block.header.hash.toHex());
   const genesisBlockIdentifier = new Types.BlockIdentifier(0, genesisBlockHash);
 
-  // TODO: get peers
-  const peers = [
-    new Types.Peer('peer 1'),
-  ];
+  // TODO: get peers, is it relevant?
+  const peers = [];
 
   return new Types.NetworkStatusResponse(
     currentBlockIdentifier,
