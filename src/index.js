@@ -28,7 +28,7 @@ const Server = new RosettaSDK.Server({
   URL_PORT: 8080,
 });
 
-/* Data API: Network specific procedura call */
+/* Data API: Network specific procedure call */
 Server.register('/call', ServiceHandlers.Dummy.dummy);
 
 /* Data API: Network */

@@ -20,6 +20,7 @@
  */
 
 const RosettaSDK = require('rosetta-node-sdk');
+const Types = RosettaSDK.Client;
 
 /* Data API: Block */
 
@@ -32,7 +33,91 @@ const RosettaSDK = require('rosetta-node-sdk');
 * */
 const block = async (params) => {
   const { blockRequest } = params;
-  return {};
+
+  if (blockRequest.block_identifier.index != 1000) {
+    const previousBlockIndex = Math.max(0, blockRequest.block_identifier.index - 1);
+
+    const blockIdentifier = new Types.BlockIdentifier(
+      blockRequest.block_identifier.index,
+      `block ${blockRequest.block_identifier.index}`,
+    );
+
+    const parentBlockIdentifier = new Types.BlockIdentifier(
+      previousBlockIndex,
+      `block ${previousBlockIndex}`,
+    );
+
+    const timestamp = Date.now() - 500000;
+    const transactions = [];
+
+    const block = new Types.Block(
+      blockIdentifier,
+      parentBlockIdentifier,
+      timestamp,
+      transactions,
+    );
+
+    return new Types.BlockResponse(block);
+  }
+
+  const previousBlockIndex = Math.max(0, blockRequest.block_identifier.index - 1);
+
+  const blockIdentifier = new Types.BlockIdentifier(
+    1000,
+    'block 1000',
+  );
+
+  const parentBlockIdentifier = new Types.BlockIdentifier(
+    999,
+    'block 999',
+  );
+
+  const timestamp = 1586483189000;
+  const transactionIdentifier = new Types.TransactionIdentifier('transaction 0');
+  const operations = [
+    Types.Operation.constructFromObject({
+      'operation_identifier': new Types.OperationIdentifier(0),
+      'type': 'Transfer',
+      'status': 'Success',
+      'account': new Types.AccountIdentifier('account 0'),
+      'amount': new Types.Amount(
+        '-1000',
+        new Types.Currency('ROS', 2)
+      ),
+    }),
+
+    Types.Operation.constructFromObject({
+      'operation_identifier': new Types.OperationIdentifier(1),
+      'related_operations': new Types.OperationIdentifier(0),
+      'type': 'Transfer',
+      'status': 'Reverted',
+      'account': new Types.AccountIdentifier('account 1'),
+      'amount': new Types.Amount(
+        '1000',
+        new Types.Currency('ROS', 2)
+      ),
+    }),
+  ];
+
+  const transactions = [
+    new Types.Transaction(transactionIdentifier, operations),
+  ];
+
+  const block = new Types.Block(
+    blockIdentifier,
+    parentBlockIdentifier,
+    timestamp,
+    transactions,
+  );
+
+  const otherTransactions = [
+    new Types.TransactionIdentifier('transaction 1'),
+  ];
+
+  return new Types.BlockResponse(
+    block,
+    otherTransactions,
+  );
 };
 
 /**
@@ -44,7 +129,22 @@ const block = async (params) => {
 * */
 const blockTransaction = async (params) => {
   const { blockTransactionRequest } = params;
-  return {};
+
+  const transactionIdentifier = new Types.TransactionIdentifier('transaction 1');
+  const operations = [
+    Types.Operation.constructFromObject({
+      'operation_identifier': new Types.OperationIdentifier(0),
+      'type': 'Reward',
+      'status': 'Success',
+      'account': new Types.AccountIdentifier('account 2'),
+      'amount': new Types.Amount(
+        '1000',
+        new Types.Currency('ROS', 2),
+      ),
+    }),
+  ];
+
+  return new Types.Transaction(transactionIdentifier, operations);
 };
 
 module.exports = {

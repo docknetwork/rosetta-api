@@ -1,28 +1,8 @@
-/**
- * Copyright (c) 2020 DigiByte Foundation NZ Limited
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+import RosettaSDK from 'rosetta-node-sdk';
 
-const RosettaSDK = require('rosetta-node-sdk');
 const Types = RosettaSDK.Client;
 
-const networkIdentifier = require('../network');
+import networkIdentifiers from '../network';
 
 /* Data API: Network */
 
@@ -33,12 +13,8 @@ const networkIdentifier = require('../network');
 * metadataRequest MetadataRequest
 * returns NetworkListResponse
 * */
-const networkList = async (params) => {
-  const { metadataRequest } = params;
-
-  return new Types.NetworkListResponse(
-    [ networkIdentifier ],
-  );
+const networkList = async () => {
+  return new Types.NetworkListResponse(networkIdentifiers);
 };
 
 /**
@@ -51,7 +27,7 @@ const networkList = async (params) => {
 const networkOptions = async (params) => {
   const { networkRequest } = params;
 
-  const rosettaVersion = '1.4.0';
+  const rosettaVersion = '1.4.10';
   const nodeVersion = '0.0.1';
 
   const operationStatuses = [
@@ -87,6 +63,8 @@ const networkOptions = async (params) => {
 * */
 const networkStatus = async (params) => {
   const { networkRequest } = params;
+
+  // TODO: get network from params
 
   const currentBlockIdentifier = new Types.BlockIdentifier(1000, 'block 1000');
   const currentBlockTimestamp = 1586483189000;
