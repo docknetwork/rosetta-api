@@ -4,6 +4,19 @@ const Types = RosettaSDK.Client;
 
 import networkIdentifiers from '../network';
 
+function getNetworkIdentifier({ blockchain, network }) {
+  for (let i = 0; i < networkIdentifiers.length; i++) {
+    const networkIdentifier = networkIdentifiers[i];
+    if (blockchain === networkIdentifier.blockchain && network === networkIdentifier.network) {
+      return networkIdentifier;
+    }
+  }
+
+  return null;
+}
+
+import { getNetworkConnection } from '../substrate/connections';
+
 /* Data API: Network */
 
 /**
@@ -17,6 +30,14 @@ const networkList = async () => {
   return new Types.NetworkListResponse(networkIdentifiers);
 };
 
+async function getNetworkApiFromRequest(networkRequest) {
+  const targetNetworkIdentifier = networkRequest.network_identifier || networkIdentifiers[0];
+  const { blockchain, network } = targetNetworkIdentifier;
+  const networkIdentifier = getNetworkIdentifier(targetNetworkIdentifier);
+  const { api } = await getNetworkConnection(networkIdentifier);
+  return api;
+}
+
 /**
 * Get Network Options
 * This endpoint returns the version information and allowed network-specific types for a NetworkIdentifier. Any NetworkIdentifier returned by /network/list should be accessible here.  Because options are retrievable in the context of a NetworkIdentifier, it is possible to define unique options for each network.
@@ -27,8 +48,10 @@ const networkList = async () => {
 const networkOptions = async (params) => {
   const { networkRequest } = params;
 
+  // Get api connection
+  const api = await getNetworkApiFromRequest(networkRequest);
+  const nodeVersion = await api.rpc.system.version();
   const rosettaVersion = '1.4.10';
-  const nodeVersion = '0.0.1';
 
   const operationStatuses = [
     new Types.OperationStatus('Success', true),
@@ -64,11 +87,19 @@ const networkOptions = async (params) => {
 const networkStatus = async (params) => {
   const { networkRequest } = params;
 
-  // TODO: get network from params
+  // Get api connection
+  const api = await getNetworkApiFromRequest(networkRequest);
 
-  const currentBlockIdentifier = new Types.BlockIdentifier(1000, 'block 1000');
-  const currentBlockTimestamp = 1586483189000;
-  const genesisBlockIdentifier = new Types.BlockIdentifier(0, 'block 0');
+  // Get block info
+  const currentBlockTimestamp = (await api.query.timestamp.now()).toNumber();
+  const genesisBlockHash = await api.rpc.chain.getBlockHash(0);
+  const currentBlock = await api.rpc.chain.getBlock();
+
+  // Format into correct types
+  const currentBlockIdentifier = new Types.BlockIdentifier(currentBlock.block.header.number, currentBlock.block.header.hash.toHex());
+  const genesisBlockIdentifier = new Types.BlockIdentifier(0, genesisBlockHash);
+
+  // TODO: get peers
   const peers = [
     new Types.Peer('peer 1'),
   ];
