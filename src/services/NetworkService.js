@@ -4,30 +4,7 @@ const Types = RosettaSDK.Client;
 
 import networkIdentifiers from '../network';
 import errorTypes from '../helpers/error-types';
-import { getNetworkConnection } from '../substrate/connections';
-
-function getNetworkIdentifier({ blockchain, network }) {
-  for (let i = 0; i < networkIdentifiers.length; i++) {
-    const networkIdentifier = networkIdentifiers[i];
-    if (blockchain === networkIdentifier.blockchain && network === networkIdentifier.network) {
-      return networkIdentifier;
-    }
-  }
-
-  return null;
-}
-
-async function getNetworkApiFromRequest(networkRequest) {
-  const targetNetworkIdentifier = networkRequest.network_identifier || networkIdentifiers[0];
-  const { blockchain, network } = targetNetworkIdentifier;
-  const networkIdentifier = getNetworkIdentifier(targetNetworkIdentifier);
-  if (networkIdentifier) {
-    const { api } = await getNetworkConnection(networkIdentifier);
-    return api;
-  } else {
-    throw new Error(`Can't find network with blockchain and network of: ${blockchain}, ${network}`);
-  }
-}
+import { getNetworkConnection, getNetworkIdentifier, getNetworkApiFromRequest } from '../substrate/connections';
 
 /* Data API: Network */
 
