@@ -1,25 +1,11 @@
-/**
- * Copyright (c) 2020 DigiByte Foundation NZ Limited
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+import RosettaSDK from 'rosetta-node-sdk';
 
-const RosettaSDK = require('rosetta-node-sdk');
+import {
+  getNetworkConnection,
+  getNetworkIdentifier,
+  getNetworkApiFromRequest,
+} from '../substrate/connections';
+
 const Types = RosettaSDK.Client;
 
 /* Data API: Block */
@@ -33,76 +19,72 @@ const Types = RosettaSDK.Client;
 * */
 const block = async (params) => {
   const { blockRequest } = params;
+  const api = await getNetworkApiFromRequest(blockRequest);
+  const { index, hash } = blockRequest.block_identifier;
 
-  if (blockRequest.block_identifier.index != 1000) {
-    const previousBlockIndex = Math.max(0, blockRequest.block_identifier.index - 1);
-
-    const blockIdentifier = new Types.BlockIdentifier(
-      blockRequest.block_identifier.index,
-      `block ${blockRequest.block_identifier.index}`,
-    );
-
-    const parentBlockIdentifier = new Types.BlockIdentifier(
-      previousBlockIndex,
-      `block ${previousBlockIndex}`,
-    );
-
-    const timestamp = Date.now() - 500000;
-    const transactions = [];
-
-    const block = new Types.Block(
-      blockIdentifier,
-      parentBlockIdentifier,
-      timestamp,
-      transactions,
-    );
-
-    return new Types.BlockResponse(block);
+  // Get block hash if not set
+  let blockHash = hash;
+  let blockIndex = index;
+  if (!blockHash) {
+    blockHash = await api.rpc.chain.getBlockHash(index);
   }
 
-  const previousBlockIndex = Math.max(0, blockRequest.block_identifier.index - 1);
+  // Get block info and set index if not set
+  const currentBlock = await api.rpc.chain.getBlock(blockHash);
+  if (!blockIndex) {
+    blockIndex = currentBlock.block.header.number.toNumber();
+  }
 
+  // Get block timestamp
+  const timestamp = (await api.query.timestamp.now.at(blockHash)).toNumber();
+
+  // Get block parent
+  const parentHash = currentBlock.block.header.parentHash.toHex();
+  const parentBlock = await api.rpc.chain.getBlock(parentHash);
+
+  // Convert to BlockIdentifier
   const blockIdentifier = new Types.BlockIdentifier(
-    1000,
-    'block 1000',
+    blockIndex,
+    blockHash,
   );
 
   const parentBlockIdentifier = new Types.BlockIdentifier(
-    999,
-    'block 999',
+    parentBlock.block.header.number.toNumber(),
+    parentHash,
   );
 
-  const timestamp = 1586483189000;
+  // TODO: list transactions
   const transactionIdentifier = new Types.TransactionIdentifier('transaction 0');
-  const operations = [
-    Types.Operation.constructFromObject({
-      'operation_identifier': new Types.OperationIdentifier(0),
-      'type': 'Transfer',
-      'status': 'Success',
-      'account': new Types.AccountIdentifier('account 0'),
-      'amount': new Types.Amount(
-        '-1000',
-        new Types.Currency('ROS', 2)
-      ),
-    }),
-
-    Types.Operation.constructFromObject({
-      'operation_identifier': new Types.OperationIdentifier(1),
-      'related_operations': new Types.OperationIdentifier(0),
-      'type': 'Transfer',
-      'status': 'Reverted',
-      'account': new Types.AccountIdentifier('account 1'),
-      'amount': new Types.Amount(
-        '1000',
-        new Types.Currency('ROS', 2)
-      ),
-    }),
+  const operations = [ // Operations within the above transaction type
+    // Types.Operation.constructFromObject({
+    //   'operation_identifier': new Types.OperationIdentifier(0),
+    //   'type': 'Transfer',
+    //   'status': 'Success',
+    //   'account': new Types.AccountIdentifier('account 0'),
+    //   'amount': new Types.Amount(
+    //     '-1000',
+    //     new Types.Currency('ROS', 2)
+    //   ),
+    // }),
+    //
+    // Types.Operation.constructFromObject({
+    //   'operation_identifier': new Types.OperationIdentifier(1),
+    //   'related_operations': new Types.OperationIdentifier(0),
+    //   'type': 'Transfer',
+    //   'status': 'Reverted',
+    //   'account': new Types.AccountIdentifier('account 1'),
+    //   'amount': new Types.Amount(
+    //     '1000',
+    //     new Types.Currency('ROS', 2)
+    //   ),
+    // }),
   ];
 
   const transactions = [
-    new Types.Transaction(transactionIdentifier, operations),
+    // new Types.Transaction(transactionIdentifier, operations),
   ];
 
+  // Define block format
   const block = new Types.Block(
     blockIdentifier,
     parentBlockIdentifier,
@@ -110,8 +92,9 @@ const block = async (params) => {
     transactions,
   );
 
+  // TODO: list other txs
   const otherTransactions = [
-    new Types.TransactionIdentifier('transaction 1'),
+    // new Types.TransactionIdentifier('transaction 1'),
   ];
 
   return new Types.BlockResponse(

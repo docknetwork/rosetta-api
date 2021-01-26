@@ -4,7 +4,11 @@ const Types = RosettaSDK.Client;
 
 import networkIdentifiers from '../network';
 import errorTypes from '../helpers/error-types';
-import { getNetworkConnection, getNetworkIdentifier, getNetworkApiFromRequest } from '../substrate/connections';
+import {
+  getNetworkConnection,
+  getNetworkIdentifier,
+  getNetworkApiFromRequest,
+} from '../substrate/connections';
 
 /* Data API: Network */
 
@@ -81,13 +85,14 @@ const networkStatus = async (params) => {
   const api = await getNetworkApiFromRequest(networkRequest);
 
   // Get block info
+  const genesisBlockIndex = 1;
   const currentBlockTimestamp = (await api.query.timestamp.now()).toNumber();
-  const genesisBlockHash = await api.rpc.chain.getBlockHash(0);
+  const genesisBlockHash = await api.rpc.chain.getBlockHash(genesisBlockIndex);
   const currentBlock = await api.rpc.chain.getBlock();
 
   // Format into correct types
   const currentBlockIdentifier = new Types.BlockIdentifier(currentBlock.block.header.number, currentBlock.block.header.hash.toHex());
-  const genesisBlockIdentifier = new Types.BlockIdentifier(0, genesisBlockHash);
+  const genesisBlockIdentifier = new Types.BlockIdentifier(genesisBlockIndex, genesisBlockHash);
 
   // TODO: get peers, is it relevant?
   const peers = [];
