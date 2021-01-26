@@ -53,36 +53,88 @@ const block = async (params) => {
     parentHash,
   );
 
-  // TODO: list transactions
-  const transactionIdentifier = new Types.TransactionIdentifier('transaction 0');
-  const operations = [ // Operations within the above transaction type
-    // Types.Operation.constructFromObject({
-    //   'operation_identifier': new Types.OperationIdentifier(0),
-    //   'type': 'Transfer',
-    //   'status': 'Success',
-    //   'account': new Types.AccountIdentifier('account 0'),
-    //   'amount': new Types.Amount(
-    //     '-1000',
-    //     new Types.Currency('ROS', 2)
-    //   ),
-    // }),
-    //
-    // Types.Operation.constructFromObject({
-    //   'operation_identifier': new Types.OperationIdentifier(1),
-    //   'related_operations': new Types.OperationIdentifier(0),
-    //   'type': 'Transfer',
-    //   'status': 'Reverted',
-    //   'account': new Types.AccountIdentifier('account 1'),
-    //   'amount': new Types.Amount(
-    //     '1000',
-    //     new Types.Currency('ROS', 2)
-    //   ),
-    // }),
-  ];
+  // Get currency info
+  const currencyDecimals = 10; // TODO: pull from network
+  const currencySymbol = 'DCK';
 
-  const transactions = [
-    // new Types.Transaction(transactionIdentifier, operations),
-  ];
+
+
+
+  const allRecords = await api.query.system.events.at(blockHash);
+  const transactions = [];
+
+  console.log('allRecords', allRecords)
+
+  // map between the extrinsics and events
+  currentBlock.block.extrinsics.forEach(({ method: { method, section, args } }, index) => {
+    allRecords
+      // filter the specific events based on the phase and then the
+      // index of our extrinsic in the block
+      .filter(({ phase }) =>
+        phase.isApplyExtrinsic &&
+        phase.asApplyExtrinsic.eq(index)
+      )
+      // test the events against the specific types we are looking for
+      .forEach(({ event }) => {
+        const extrinsicSuccess = api.events.system.ExtrinsicSuccess.is(event);
+        const extrinsicFailed = api.events.system.ExtrinsicFailed.is(event);
+
+        if (extrinsicSuccess || extrinsicFailed) {
+          if (section === 'balances') {
+            // const txHash = extrinsic.toHex();
+            const txHash = 'TODO';
+            console.log('txHash', txHash)
+
+            console.log(`args: ${args.map((a) => a.toString()).join(', ')}`);
+
+            const destAccountAddress = args[0];
+            const balanceAmount = args[1];
+
+            const transactionIdentifier = new Types.TransactionIdentifier(txHash);
+            const operations = [ // Operations within the above transaction type
+              Types.Operation.constructFromObject({
+                'operation_identifier': [new Types.OperationIdentifier(index)],
+                'type': method,
+                'status': extrinsicSuccess ? 'Success' : 'Failure',
+                'account': new Types.AccountIdentifier(destAccountAddress),
+                'amount': new Types.Amount(
+                  balanceAmount.toString(), // TODO: balance is wrong decimal places!
+                  new Types.Currency(currencySymbol, currencyDecimals)
+                ),
+              }),
+            ];
+
+            transactions.push(new Types.Transaction(transactionIdentifier, operations));
+          }
+        }
+
+        if (extrinsicSuccess) {
+          // extract the data for this event
+          // (In TS, because of the guard above, these will be typed)
+          const [dispatchInfo] = event.data;
+          console.log(`${section}.${method}:: ExtrinsicSuccess:: ${dispatchInfo.toHuman()}`);
+        } else if (extrinsicFailed) {
+          // extract the data for this event
+          const [dispatchError, dispatchInfo] = event.data;
+          let errorInfo;
+
+          // decode the error
+          if (dispatchError.isModule) {
+            // for module errors, we have the section indexed, lookup
+            // (For specific known errors, we can also do a check against the
+            // api.errors.<module>.<ErrorName>.is(dispatchError.asModule) guard)
+            const decoded = api.registry.findMetaError(dispatchError.asModule);
+
+            errorInfo = `${decoded.section}.${decoded.name}`;
+          } else {
+            // Other, CannotLookup, BadOrigin, no extra info
+            errorInfo = dispatchError.toString();
+          }
+
+          console.log(`${section}.${method}:: ExtrinsicFailed:: ${errorInfo}`);
+        }
+      });
+  });
 
   // Define block format
   const block = new Types.Block(
