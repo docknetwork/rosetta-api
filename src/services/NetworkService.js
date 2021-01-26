@@ -3,6 +3,8 @@ import RosettaSDK from 'rosetta-node-sdk';
 const Types = RosettaSDK.Client;
 
 import networkIdentifiers from '../network';
+import errorTypes from '../helpers/error-types';
+import { getNetworkConnection } from '../substrate/connections';
 
 function getNetworkIdentifier({ blockchain, network }) {
   for (let i = 0; i < networkIdentifiers.length; i++) {
@@ -15,7 +17,17 @@ function getNetworkIdentifier({ blockchain, network }) {
   return null;
 }
 
-import { getNetworkConnection } from '../substrate/connections';
+async function getNetworkApiFromRequest(networkRequest) {
+  const targetNetworkIdentifier = networkRequest.network_identifier || networkIdentifiers[0];
+  const { blockchain, network } = targetNetworkIdentifier;
+  const networkIdentifier = getNetworkIdentifier(targetNetworkIdentifier);
+  if (networkIdentifier) {
+    const { api } = await getNetworkConnection(networkIdentifier);
+    return api;
+  } else {
+    throw new Error(`Can't find network with blockchain and network of: ${blockchain}, ${network}`);
+  }
+}
 
 /* Data API: Network */
 
@@ -29,14 +41,6 @@ import { getNetworkConnection } from '../substrate/connections';
 const networkList = async () => {
   return new Types.NetworkListResponse(networkIdentifiers);
 };
-
-async function getNetworkApiFromRequest(networkRequest) {
-  const targetNetworkIdentifier = networkRequest.network_identifier || networkIdentifiers[0];
-  const { blockchain, network } = targetNetworkIdentifier;
-  const networkIdentifier = getNetworkIdentifier(targetNetworkIdentifier);
-  const { api } = await getNetworkConnection(networkIdentifier);
-  return api;
-}
 
 /**
 * Get Network Options
@@ -53,19 +57,28 @@ const networkOptions = async (params) => {
   const nodeVersion = await api.rpc.system.version();
   const rosettaVersion = '1.4.10';
 
+  // TODO: map propert operation statuses
   const operationStatuses = [
-    new Types.OperationStatus('Success', true),
-    new Types.OperationStatus('Reverted', false),
+    new Types.OperationStatus('SUCCESS', true),
+    new Types.OperationStatus('FAILURE', false),
   ];
 
+  // TODO: map proper operation types, these are cop[ied from eth]
   const operationTypes = [
-    'Transfer',
-    'Reward',
+    "MINER_REWARD",
+    "UNCLE_REWARD",
+    "FEE",
+    "CALL",
+    "CREATE",
+    "CREATE2",
+    "SELFDESTRUCT",
+    "CALLCODE",
+    "DELEGATECALL",
+    "STATICCALL",
+    "DESTRUCT",
   ];
 
-  const errors = [
-    new Types.Error(1, 'not implemented', false),
-  ];
+  const errors = errorTypes.map(error => new Types.Error(error.code, error.message, error.retriable));
 
   return new Types.NetworkOptionsResponse(
     new Types.Version(rosettaVersion, nodeVersion),
