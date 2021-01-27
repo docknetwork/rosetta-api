@@ -97,6 +97,12 @@ const networkStatus = async (params) => {
   // TODO: get peers, is it relevant?
   const peers = [];
 
+  // TODO: evalulate need of sync status object for substrate
+    // "sync_status": {
+    //     "current_index": 24708,
+    //     "target_index": 11733243
+    // },
+
   return new Types.NetworkStatusResponse(
     currentBlockIdentifier,
     currentBlockTimestamp,
