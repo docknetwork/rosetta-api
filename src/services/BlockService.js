@@ -6,13 +6,9 @@ import {
   getNetworkApiFromRequest,
 } from '../substrate/connections';
 
+import dckCurrency from '../helpers/currency';
+
 const Types = RosettaSDK.Client;
-
-/* Data API: Block */
-
-// Get currency info
-const currencyDecimals = 10; // TODO: pull from network
-const currencySymbol = 'DCK';
 
 function getTransactions(currentBlock, allRecords, api, shouldDisplay = null) {
   const transactions = [];
@@ -46,7 +42,7 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null) {
                 'account': new Types.AccountIdentifier(destAccountAddress),
                 'amount': new Types.Amount(
                   balanceAmount.toString(), // TODO: balance is wrong decimal places!
-                  new Types.Currency(currencySymbol, currencyDecimals)
+                  dckCurrency
                 ),
               }),
             ];
@@ -69,6 +65,8 @@ function getTransactionHashes(currentBlock, allRecords, api, shouldDisplay = nul
   });
   return transactions;
 }
+
+/* Data API: Block */
 
 /**
 * Get a Block

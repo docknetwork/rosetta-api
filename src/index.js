@@ -45,6 +45,7 @@ Server.register('/account/balance', ServiceHandlers.Account.balance);
 Server.register('/account/coins', ServiceHandlers.Dummy.dummy);
 
 /* Data API: Mempool */
+// TODO: evaluate the need for these on a substrate chain, if not needed return not implemented response code
 Server.register('/mempool', ServiceHandlers.Mempool.mempool);
 Server.register('/mempool/transaction', ServiceHandlers.Mempool.mempoolTransaction);
 

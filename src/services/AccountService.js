@@ -1,25 +1,14 @@
-/**
- * Copyright (c) 2020 DigiByte Foundation NZ Limited
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+import RosettaSDK from 'rosetta-node-sdk';
 
-const RosettaSDK = require('rosetta-node-sdk');
+import {
+  getNetworkConnection,
+  getNetworkIdentifier,
+  getNetworkApiFromRequest,
+} from '../substrate/connections';
+
+import dckCurrency from '../helpers/currency';
+
+const Types = RosettaSDK.Client;
 
 /* Data API: Account */
 
@@ -32,10 +21,48 @@ const RosettaSDK = require('rosetta-node-sdk');
 * */
 const balance = async (params) => {
   const { accountBalanceRequest } = params;
+  const { address } = accountBalanceRequest.account_identifier;
+  const { index, hash } = accountBalanceRequest.block_identifier;
+  const api = await getNetworkApiFromRequest(accountBalanceRequest);
+
+  // TODO: put this in a method so we can reuse with blockservice
+  // Get block hash if not set
+  let blockHash = hash;
+  let blockIndex = index;
+  if (!blockHash) {
+    blockHash = await api.rpc.chain.getBlockHash(index);
+  }
+
+  // Get block info and set index if not set
+  const currentBlock = await api.rpc.chain.getBlock(blockHash);
+  if (!blockIndex) {
+    blockIndex = currentBlock.block.header.number.toNumber();
+  }
+
+  // Get balance at block hash
+  const { data: { free } } = await api.query.system.account.at(blockHash, address);
+  const validBlock = Types.BlockIdentifier.constructFromObject({
+    index: blockIndex,
+    hash: blockHash,
+  });
+
+  const validAmount = Types.Amount.constructFromObject({
+    value: free.toString(),
+    currency: dckCurrency,
+  });
+
+  return new Types.AccountBalanceResponse(validBlock, [validAmount]);
+};
+
+const coins = async (params) => {
+  console.log('coins params', params);
   return {};
 };
 
 module.exports = {
   /* /account/balance */
   balance,
+
+  /* /account/coins */
+  coins,
 };
