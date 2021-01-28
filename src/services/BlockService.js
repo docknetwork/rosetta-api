@@ -27,9 +27,15 @@ function getOperationAmountFromEvent(operationId, args, api) {
 }
 
 function getEffectedAccountFromEvent(operationId, args, api) {
-  if (operationId === 'poamodule.txnfeesgiven') {
+  if (operationId === 'poamodule.txnfeesgiven' || operationId === 'balances.transfer') {
     return args[1];
   } else {
+    return args[0];
+  }
+}
+
+function getSourceAccountFromEvent(operationId, args, api) {
+  if (operationId === 'balances.transfer') {
     return args[0];
   }
 }
@@ -62,23 +68,26 @@ function processRecordToOp(api, record, operations, extrinsicArgs, status, sourc
         ),
       })
     );
+
+    // Apply minus delta balance from source
+    if (operationId === 'balances.transfer') {
+      const sourceAccountAddress = getSourceAccountFromEvent(operationId, args, api);
+      operations.push(
+        Types.Operation.constructFromObject({
+          'operation_identifier': new Types.OperationIdentifier(operations.length),
+          'type': eventOpType,
+          'status': status,
+          'account': new Types.AccountIdentifier(sourceAccountAddress),
+          'amount': new Types.Amount(
+            balanceAmount.neg().toString(),
+            dckCurrency
+          ),
+        })
+      );
+    }
   } else {
     console.log(`unprocessed event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) `);
   }
-  // TODO: do we need to add the -balance from source?
-  //
-  //       operations.push(
-  //         Types.Operation.constructFromObject({
-  //           'operation_identifier': new Types.OperationIdentifier(1),
-  //           'type': operationType,
-  //           'status': extrinsicSuccess ? OPERATION_STATUS_SUCCESS : OPERATION_STATUS_FAILURE,
-  //           'account': new Types.AccountIdentifier(sourceAccountAddress),
-  //           'amount': new Types.Amount(
-  //             balanceAmount.neg().toString(), // TODO: balance is wrong decimal places!
-  //             dckCurrency
-  //           ),
-  //         }),
-  //       );
 }
 
 
