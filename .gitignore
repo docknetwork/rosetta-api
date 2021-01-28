@@ -4,3 +4,4 @@ coverage/
 test-report/
 *.log
 ethereum-data
+rosetta-cli

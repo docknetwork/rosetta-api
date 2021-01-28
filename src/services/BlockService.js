@@ -189,9 +189,9 @@ const block = async (params) => {
 
   // Get block hash if not set
   let blockHash = hash;
-  let blockIndex = index;
+  let blockIndex = Math.max(index, 1);
   if (!blockHash) {
-    blockHash = await api.rpc.chain.getBlockHash(index);
+    blockHash = await api.rpc.chain.getBlockHash(blockIndex);
   }
 
   // Get block info and set index if not set
