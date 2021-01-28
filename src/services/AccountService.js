@@ -22,7 +22,10 @@ const Types = RosettaSDK.Client;
 const balance = async (params) => {
   const { accountBalanceRequest } = params;
   const { address } = accountBalanceRequest.account_identifier;
-  const { index, hash } = accountBalanceRequest.block_identifier;
+  const { index, hash } = accountBalanceRequest.block_identifier || {
+    index: null,
+    hash: null,
+  };
   const api = await getNetworkApiFromRequest(accountBalanceRequest);
 
   // TODO: put this in a method so we can reuse with blockservice

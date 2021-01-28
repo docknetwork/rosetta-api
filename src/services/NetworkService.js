@@ -38,25 +38,31 @@ const networkOptions = async (params) => {
   const nodeVersion = await api.rpc.system.version();
   const rosettaVersion = '1.4.10';
 
-  // TODO: map propert operation statuses
+  // Binary true/false success state for extrinsics
   const operationStatuses = [
     new Types.OperationStatus('SUCCESS', true),
     new Types.OperationStatus('FAILURE', false),
   ];
 
   // TODO: map proper operation types, these are cop[ied from eth]
+  // see https://polkadot.js.org/docs/substrate/events/#balances for balance related op types
   const operationTypes = [
-    "MINER_REWARD",
-    "UNCLE_REWARD",
-    "FEE",
-    "CALL",
-    "CREATE",
-    "CREATE2",
-    "SELFDESTRUCT",
-    "CALLCODE",
-    "DELEGATECALL",
-    "STATICCALL",
-    "DESTRUCT",
+    'Transfer',
+    'Create',
+    'Reserved',
+    'TxFeeGiven',
+
+    // "MINER_REWARD",
+    // "UNCLE_REWARD",
+    // "FEE",
+    // "CALL",
+    // "CREATE",
+    // "CREATE2",
+    // "SELFDESTRUCT",
+    // "CALLCODE",
+    // "DELEGATECALL",
+    // "STATICCALL",
+    // "DESTRUCT",
   ];
 
   const errors = errorTypes.map(error => new Types.Error(error.code, error.message, error.retriable));

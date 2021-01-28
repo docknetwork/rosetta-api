@@ -42,7 +42,7 @@ Server.register('/block/transaction', ServiceHandlers.Block.blockTransaction);
 
 /* Data API: Account */
 Server.register('/account/balance', ServiceHandlers.Account.balance);
-Server.register('/account/coins', ServiceHandlers.Dummy.dummy);
+Server.register('/account/coins', ServiceHandlers.Account.coins);
 
 /* Data API: Mempool */
 // TODO: evaluate the need for these on a substrate chain, if not needed return not implemented response code
