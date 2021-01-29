@@ -86,7 +86,7 @@ function processRecordToOp(api, record, operations, extrinsicArgs, status, sourc
       );
     }
   } else {
-    console.log(`unprocessed event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) `);
+    // console.log(`unprocessed event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) `);
   }
 }
 
