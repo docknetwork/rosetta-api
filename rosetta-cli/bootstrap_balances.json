@@ -1,0 +1,82 @@
+[
+  {
+    "account_identifier": {
+      "address":"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    },
+    "currency":{
+      "symbol":"DCK",
+      "decimals":6
+    },
+    "value": "100000000000000"
+  },
+  {
+    "account_identifier": {
+      "address":"5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY"
+    },
+    "currency":{
+      "symbol":"DCK",
+      "decimals":6
+    },
+    "value": "100000000000000"
+  },
+  {
+    "account_identifier": {
+      "address":"5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    },
+    "currency":{
+      "symbol":"DCK",
+      "decimals":6
+    },
+    "value": "100000000000000"
+  },
+  {
+    "account_identifier": {
+      "address":"5HpG9w8EBLe5XCrbczpwq5TSXvedjrBGCwqxK1iQ7qUsSWFc"
+    },
+    "currency":{
+      "symbol":"DCK",
+      "decimals":6
+    },
+    "value": "100000000000000"
+  },
+  {
+    "account_identifier": {
+      "address":"5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y"
+    },
+    "currency":{
+      "symbol":"DCK",
+      "decimals":6
+    },
+    "value": "100000000000000"
+  },
+  {
+    "account_identifier": {
+      "address":"5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy"
+    },
+    "currency":{
+      "symbol":"DCK",
+      "decimals":6
+    },
+    "value": "100000000000000"
+  },
+  {
+    "account_identifier": {
+      "address":"5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw"
+    },
+    "currency":{
+      "symbol":"DCK",
+      "decimals":6
+    },
+    "value": "100000000000000"
+  },
+  {
+    "account_identifier": {
+      "address":"5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL"
+    },
+    "currency":{
+      "symbol":"DCK",
+      "decimals":6
+    },
+    "value": "100000000000000"
+  }
+]
