@@ -105,15 +105,28 @@ const constructionPayloads = async (params) => {
 
 /**
 * Create a Request to Fetch Metadata
-* Preprocess is called prior to `/construction/payloads` to construct a request for any metadata that is needed for transaction construction given (i.e. account nonce). The request returned from this method will be used by the caller (in a different execution environment) to call the `/construction/metadata` endpoint.
+* Preprocess is called prior to /construction/payloads to construct a request for any metadata that is needed for transaction construction given (i.e. account nonce).
+* The options object returned from this endpoint will be sent to the /construction/metadata endpoint UNMODIFIED by the caller (in an offline execution environment).
+* If your Construction API implementation has configuration options, they MUST be specified in the /construction/preprocess request (in the metadata field).
 *
 * constructionPreprocessRequest ConstructionPreprocessRequest
 * returns ConstructionPreprocessResponse
 * */
 const constructionPreprocess = async (params) => {
-  const { constructionSubmitRequest } = params;
-  console.log('constructionPreprocess', params)
-  return {};
+  const { constructionPreprocessRequest } = params;
+  const { operations } = constructionPreprocessRequest;
+
+  // Gather public keys needed for TXs
+  const requiredPublicKeys = operations.map(operation => {
+    return new Types.AccountIdentifier(operation.account.address); // TODO: do we need address or pks?
+  });
+
+  // TODO: this needs implementing in rosetta-node-client-sdk
+  // return new Types.ConstructionPreprocessResponse();
+  return {
+    options: {}, // Configuration options
+    required_public_keys: requiredPublicKeys
+  }
 };
 
 module.exports = {

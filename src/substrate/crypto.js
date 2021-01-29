@@ -2,6 +2,7 @@ import { cryptoWaitReady, encodeAddress } from '@polkadot/util-crypto';
 import { Keyring } from '@polkadot/keyring';
 import { hexToU8a } from '@polkadot/util';
 
+// TODO: define ss58 format properly, elsewhere
   // switch (network) {
   //   case 'dev':
   //     return encodeAddress(addr, 42);
