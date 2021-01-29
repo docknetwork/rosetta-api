@@ -1,5 +1,4 @@
 import { ApiPromise, WsProvider, Keyring } from '@polkadot/api';
-import { cryptoWaitReady } from '@polkadot/util-crypto';
 import networkIdentifiers from '../network';
 
 const connections = {};

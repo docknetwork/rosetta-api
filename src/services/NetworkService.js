@@ -91,7 +91,7 @@ const networkStatus = async (params) => {
   const api = await getNetworkApiFromRequest(networkRequest);
 
   // Get block info
-  const genesisBlockIndex = 1;
+  const genesisBlockIndex = 0;
   const currentBlockTimestamp = (await api.query.timestamp.now()).toNumber();
   const genesisBlockHash = await api.rpc.chain.getBlockHash(genesisBlockIndex);
   const currentBlock = await api.rpc.chain.getBlock();

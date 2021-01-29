@@ -1,25 +1,10 @@
-/**
- * Copyright (c) 2020 DigiByte Foundation NZ Limited
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+import RosettaSDK from 'rosetta-node-sdk';
 
-const RosettaSDK = require('rosetta-node-sdk');
+const Types = RosettaSDK.Client;
+
+import {
+  publicKeyToAddress,
+} from '../substrate/crypto';
 
 /* Data API: Construction */
 
@@ -31,6 +16,7 @@ const RosettaSDK = require('rosetta-node-sdk');
 * returns ConstructionMetadataResponse
 * */
 const constructionMetadata = async (params) => {
+  console.log('constructionMetadata', params)
   const { constructionMetadataRequest } = params;
   return {};
 };
@@ -43,6 +29,7 @@ const constructionMetadata = async (params) => {
 * returns ConstructionSubmitResponse
 * */
 const constructionSubmit = async (params) => {
+  console.log('constructionSubmit', params)
   const { constructionSubmitRequest } = params;
   return {};
 };
@@ -55,6 +42,7 @@ const constructionSubmit = async (params) => {
 * returns ConstructionCombineResponse
 * */
 const constructionCombine = async (params) => {
+  console.log('constructionCombine', params)
   const { constructionSubmitRequest } = params;
   return {};
 };
@@ -67,8 +55,13 @@ const constructionCombine = async (params) => {
 * returns ConstructionDeriveResponse
 * */
 const constructionDerive = async (params) => {
-  const { constructionSubmitRequest } = params;
-  return {};
+  const { constructionDeriveRequest } = params;
+  // TODO: get network from identifier without connecting
+  // and get appropriate ss58Format value
+  const publicKeyHex = '0x' + constructionDeriveRequest.public_key.hex_bytes;
+  const publicKeyType = constructionDeriveRequest.public_key.curve_type;
+  const address = await publicKeyToAddress(publicKeyHex, publicKeyType);
+  return new Types.ConstructionDeriveResponse(address);
 };
 
 /**
@@ -80,6 +73,7 @@ const constructionDerive = async (params) => {
 * */
 const constructionHash = async (params) => {
   const { constructionSubmitRequest } = params;
+  console.log('constructionHash', params)
   return {};
 };
 
@@ -92,6 +86,7 @@ const constructionHash = async (params) => {
 * */
 const constructionParse = async (params) => {
   const { constructionSubmitRequest } = params;
+  console.log('constructionParse', params)
   return {};
 };
 
@@ -104,6 +99,7 @@ const constructionParse = async (params) => {
 * */
 const constructionPayloads = async (params) => {
   const { constructionSubmitRequest } = params;
+  console.log('constructionPayloads', params)
   return {};
 };
 
@@ -116,6 +112,7 @@ const constructionPayloads = async (params) => {
 * */
 const constructionPreprocess = async (params) => {
   const { constructionSubmitRequest } = params;
+  console.log('constructionPreprocess', params)
   return {};
 };
 

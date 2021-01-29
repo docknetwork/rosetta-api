@@ -189,9 +189,34 @@ const block = async (params) => {
 
   // Get block hash if not set
   let blockHash = hash;
-  let blockIndex = Math.max(index, 1);
+  let blockIndex = index;
   if (!blockHash) {
     blockHash = await api.rpc.chain.getBlockHash(blockIndex);
+  }
+
+  // Get block timestamp
+  const timestamp = (await api.query.timestamp.now.at(blockHash)).toNumber();
+
+  // Genesis block
+  if (blockIndex === 0) {
+    const blockIdentifier = new Types.BlockIdentifier(
+      blockIndex,
+      blockHash,
+    );
+
+    // Define block format
+    const block = new Types.Block(
+      blockIdentifier,
+      blockIdentifier,
+      timestamp,
+      [],
+    );
+
+    // Format data into block response
+    return new Types.BlockResponse(
+      block,
+      [],
+    );
   }
 
   // Get block info and set index if not set
@@ -200,12 +225,9 @@ const block = async (params) => {
     blockIndex = currentBlock.block.header.number.toNumber();
   }
 
-  // Get block timestamp
-  const timestamp = (await api.query.timestamp.now.at(blockHash)).toNumber();
-
   // Get block parent
-  const parentHash = blockIndex === 1 ? blockHash : currentBlock.block.header.parentHash.toHex();
-  const parentBlock = blockIndex === 1 ? currentBlock : (await api.rpc.chain.getBlock(parentHash));
+  const parentHash = currentBlock.block.header.parentHash.toHex();
+  const parentBlock = await api.rpc.chain.getBlock(parentHash);
 
   // Convert to BlockIdentifier
   const blockIdentifier = new Types.BlockIdentifier(
