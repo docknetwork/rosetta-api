@@ -26,7 +26,7 @@ request_funds(1){
 
 create_account(1){
   create{
-    network = {"network":"Substrate", "blockchain":"Development Node"};
+    network = {"network":"Development Node", "blockchain":"Substrate"};
     key = generate_key({"curve_type": "edwards25519"});
     account = derive({
       "network_identifier": {{network}},
@@ -43,7 +43,7 @@ create_account(1){
 
 transfer(10){
   transfer{
-    transfer.network = {"network":"Substrate", "blockchain":"Development Node"};
+    transfer.network = {"network":"Development Node", "blockchain":"Substrate"};
     currency = {"symbol":"DCK", "decimals":6};
     sender = find_balance({
       "minimum_balance":{
@@ -53,7 +53,7 @@ transfer(10){
     });
 
     // Set the recipient_amount as some value <= sender.balance-max_fee
-    max_fee = "100000";
+    max_fee = "10000";
     available_amount = {{sender.balance.value}} - {{max_fee}};
     recipient_amount = random_number({"minimum": "1", "maximum": {{available_amount}}});
     print_message({"recipient_amount":{{recipient_amount}}});
@@ -73,7 +73,7 @@ transfer(10){
     transfer.operations = [
       {
         "operation_identifier":{"index":0},
-        "type":"CALL",
+        "type":"Transfer",
         "status":"SUCCESS",
         "account":{{sender.account_identifier}},
         "amount":{
@@ -83,7 +83,7 @@ transfer(10){
       },
       {
         "operation_identifier":{"index":1},
-        "type":"CALL",
+        "type":"Transfer",
         "status":"SUCCESS",
         "account":{{recipient.account_identifier}},
         "amount":{

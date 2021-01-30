@@ -1,10 +1,20 @@
 import RosettaSDK from 'rosetta-node-sdk';
+import { u8aToHex, hexToU8a } from '@polkadot/util';
+import BN from 'bn.js';
 
 const Types = RosettaSDK.Client;
 
 import {
   publicKeyToAddress,
 } from '../substrate/crypto';
+
+import {
+  getNetworkConnection,
+  getNetworkIdentifier,
+  getNetworkApiFromRequest,
+} from '../substrate/connections';
+
+import dckCurrency from '../helpers/currency';
 
 /* Data API: Construction */
 
@@ -16,9 +26,21 @@ import {
 * returns ConstructionMetadataResponse
 * */
 const constructionMetadata = async (params) => {
-  console.log('constructionMetadata', params)
   const { constructionMetadataRequest } = params;
-  return {};
+  console.log('constructionMetadata', constructionMetadataRequest)
+
+  const response = new Types.ConstructionMetadataResponse({
+    // We don't need any metadata?
+  });
+
+  // TODO: proper suggested fee
+  response.suggested_fee = [{
+    value: '10000',
+    currency: dckCurrency,
+    metadata: {}
+  }];
+
+  return response;
 };
 
 /**
@@ -85,8 +107,74 @@ const constructionHash = async (params) => {
 * returns ConstructionParseResponse
 * */
 const constructionParse = async (params) => {
-  const { constructionSubmitRequest } = params;
-  console.log('constructionParse', params)
+  const { constructionParseRequest } = params;
+  console.log('parseparams', params)
+  const api = await getNetworkApiFromRequest(constructionParseRequest);
+  const { signed, transaction } = constructionParseRequest;
+
+  const polkaTx = api.createType('Extrinsic', hexToU8a('0x' + transaction));
+  const { args } = polkaTx.method.toJSON();
+
+  // TODO: ensure tx is balances.transfer
+
+  // Ensure args are correct
+  if (!args.dest || !args.value) {
+    throw new Error('Extrinsic is missing dest and value args');
+  }
+
+  console.log('polkaTxargs', polkaTx.method.callIndex[0], polkaTx.method.callIndex[1], args);
+
+  // TODO: need to somehow get source address but its not defined in extrinsic unless signed
+  const sourceAccountAddress = 'sourceacc';
+  const destAccountAddress = args.dest;
+
+  const operations = [
+    Types.Operation.constructFromObject({
+      'operation_identifier': new Types.OperationIdentifier(0),
+      'type': 'Transfer',
+      'status': 'SUCCESS',
+      'account': new Types.AccountIdentifier(sourceAccountAddress),
+      'amount': new Types.Amount(
+        new BN(args.value).neg().toString(),
+        dckCurrency
+      ),
+    }),
+    Types.Operation.constructFromObject({
+      'operation_identifier': new Types.OperationIdentifier(1),
+      'type': 'Transfer',
+      'status': 'SUCCESS',
+      'account': new Types.AccountIdentifier(destAccountAddress),
+      'amount': new Types.Amount(
+        args.value.toString(),
+        dckCurrency
+      ),
+    }),
+  ];
+
+console.log('operations', operations)
+
+// senderOperations [
+//   {
+//     operation_identifier: { index: 0 },
+//     type: 'Transfer',
+//     status: 'SUCCESS',
+//     account: { address: '5FJRtAZHYnUht5CTqFVkkF3UJKo7y9SommYsHgbb1UgBXGAe' },
+//     amount: { value: '-923013', currency: [Object] }
+//   }
+// ]
+// receiverOperations [
+//   {
+//     operation_identifier: { index: 1 },
+//     type: 'Transfer',
+//     status: 'SUCCESS',
+//     account: { address: '5GfV1WJYSNfYDdUHGwTVEwYzJTabGEPVxse3eUbg1Rj3kzqL' },
+//     amount: { value: '923013', currency: [Object] }
+//   }
+// ]
+
+
+  // TODO: deconstruct transaction into operations
+
   return {};
 };
 
@@ -98,9 +186,71 @@ const constructionParse = async (params) => {
 * returns ConstructionPayloadsResponse
 * */
 const constructionPayloads = async (params) => {
-  const { constructionSubmitRequest } = params;
-  console.log('constructionPayloads', params)
-  return {};
+  const { constructionPayloadsRequest } = params;
+  const { operations } = constructionPayloadsRequest;
+  console.log('constructionPayloads', constructionPayloadsRequest);
+  const api = await getNetworkApiFromRequest(constructionPayloadsRequest);
+
+  // Must have 2 operations, send and receive
+  if (operations.length !== 2) {
+    throw new Error('Need atleast 2 transfer operations');
+  }
+
+  // Sort by sender/reciever
+  const senderOperations = operations
+    .filter(operation =>
+      new BN(operation.amount.value).isNeg()
+    );
+
+  const receiverOperations = operations
+    .filter(operation =>
+      !new BN(operation.amount.value).isNeg()
+    );
+
+  // Ensure we have correct amount of operations
+  if (senderOperations.length !== 1 || receiverOperations.length !== 1) {
+    throw new Error(`Payloads require 1 sender and 1 receiver transfer operation`);
+  }
+
+  const sendOp = senderOperations[0];
+  const receiveOp = receiverOperations[0];
+
+  // Support only transfer operation
+  if (sendOp.type !== 'Transfer' || receiveOp.type !== 'Transfer') {
+    throw new Error(`Payload operations must be of type Transfer`);
+  }
+
+  const senderAddress = sendOp.account.address;
+
+  console.log('senderOperations', senderOperations)
+  console.log('receiverOperations', receiverOperations)
+
+  // Create a extrinsic, transferring randomAmount units to Bob.
+  const transferValue = api.createType('Balance', receiveOp.amount.value);
+  const transferExtrinsic = api.tx.balances.transfer(receiveOp.account.address, transferValue);
+
+  const unsignedTxAsHex = u8aToHex(transferExtrinsic.toU8a()).substr(2);
+
+  // TODO: provide proper signature type from public_keys in request
+  const signatureType = 'ed25519';
+
+  // ecdsa: r (32-bytes) || s (32-bytes) - 64 bytes
+  // ecdsa_recovery: r (32-bytes) || s (32-bytes) || v (1-byte) - 65 bytes
+  // ed25519: R (32-byte) || s (32-bytes) - 64 bytes
+  // schnorr_1: r (32-bytes) || s (32-bytes) - 64 bytes
+  // schnorr_poseidon: r (32-bytes) || s (32-bytes) where s = Hash(1st pk || 2nd pk || r) - 64 bytes
+
+  // Create an array of payloads that must be signed by the caller
+  const payloads = [{
+    address: senderAddress, // TODO: seems odd we supply both addresses here, maybe one is the receiver?
+    account_identifier: new Types.AccountIdentifier(senderAddress),
+    hex_bytes: unsignedTxAsHex,
+    signature_type: signatureType,
+  }];
+
+  console.log('payloads', payloads)
+
+  return new Types.ConstructionPayloadsResponse(unsignedTxAsHex, payloads);
 };
 
 /**
@@ -124,7 +274,9 @@ const constructionPreprocess = async (params) => {
   // TODO: this needs implementing in rosetta-node-client-sdk
   // return new Types.ConstructionPreprocessResponse();
   return {
-    options: {}, // Configuration options
+    options: {
+      mustBeDefined: true, // TODO: populate proper options, empty object fails construction tests
+    }, // Configuration options
     required_public_keys: requiredPublicKeys
   }
 };
