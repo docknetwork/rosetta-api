@@ -33,12 +33,13 @@ const constructionMetadata = async (params) => {
     // We don't need any metadata?
   });
 
-  // TODO: proper suggested fee
-  response.suggested_fee = [{
-    value: '10000',
-    currency: dckCurrency,
-    metadata: {}
-  }];
+  // TODO: proper suggested fee of extrinsic
+  // not required but maybe useful for some
+  // response.suggested_fee = [{
+  //   value: '10000',
+  //   currency: dckCurrency,
+  //   metadata: {}
+  // }];
 
   return response;
 };
@@ -65,7 +66,7 @@ const constructionSubmit = async (params) => {
 * */
 const constructionCombine = async (params) => {
   console.log('constructionCombine', params)
-  const { constructionSubmitRequest } = params;
+  const { constructionCombineRequest } = params;
   return {};
 };
 
@@ -94,7 +95,7 @@ const constructionDerive = async (params) => {
 * returns TransactionIdentifierResponse
 * */
 const constructionHash = async (params) => {
-  const { constructionSubmitRequest } = params;
+  const { constructionHashRequest } = params;
   console.log('constructionHash', params)
   return {};
 };
@@ -125,6 +126,7 @@ const constructionParse = async (params) => {
   console.log('polkaTxargs', polkaTx.method.callIndex[0], polkaTx.method.callIndex[1], args);
 
   // TODO: need to somehow get source address but its not defined in extrinsic unless signed
+  console.log('polkaTx', polkaTx, polkaTx.toJSON())
   const sourceAccountAddress = 'sourceacc';
   const destAccountAddress = args.dest;
 

@@ -90,7 +90,6 @@ function processRecordToOp(api, record, operations, extrinsicArgs, status, sourc
   }
 }
 
-
 function getTransactions(currentBlock, allRecords, api, shouldDisplay = null) {
   const transactions = [];
 
