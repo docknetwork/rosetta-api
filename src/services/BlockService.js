@@ -20,7 +20,7 @@ function getOperationAmountFromEvent(operationId, args, api) {
   if (operationId === 'balances.transfer' || operationId === 'poamodule.txnfeesgiven') {
     return api.createType('Balance', args[2]);
   } else if (operationId === 'balances.reserved') {
-    return args[1];
+    return api.createType('Balance', args[1]).neg();
   } else {
     return 0;
   }
