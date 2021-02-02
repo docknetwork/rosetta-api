@@ -43,7 +43,8 @@
     "supertest": "^5.0.0"
   },
   "dependencies": {
-    "@polkadot/api": "^3.6.4",
+    "@polkadot/api": "3.1.1",
+    "@substrate/txwrapper": "^3.10.5",
     "rosetta-node-sdk": "docknetwork/rosetta-node-sdk"
   }
 }
