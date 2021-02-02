@@ -1,4 +1,5 @@
 import RosettaSDK from 'rosetta-node-sdk';
+import { decode, createSignedTx, createSigningPayload, methods } from '@substrate/txwrapper';
 import { u8aToHex, hexToU8a, stringToHex, hexToString } from '@polkadot/util';
 import BN from 'bn.js';
 
@@ -98,11 +99,20 @@ const constructionCombine = async (params) => {
   const { constructionCombineRequest } = params;
   console.log('constructionCombineRequest', params)
 
-  const { unsigned_transaction, signatures } = constructionCombineRequest;
-  // const { polkaTx, senderAddressHex } = paramsToPolkaTx(api, unsigned_transaction);
-  // const { args } = polkaTx.method.toJSON();
+  // TODO: get chainInfo from network params
+  const registry = new Registry({ chainInfo: DEVNODE_INFO, metadata });
 
-  // console.log('signatures', signatures);
+  const { unsigned_transaction, signatures } = constructionCombineRequest;
+  const txInfo = decode(JSON.parse(unsigned_transaction), { metadataRpc: metadata, registry: registry.registry });
+  const args = txInfo.method.args;
+
+  // Ensure tx is balances.transfer
+  if (txInfo.method.name !== 'transfer' || txInfo.method.pallet !== 'balances') {
+    throw new Error(`Extrinsic must be method transfer and pallet balances`);
+  }
+
+  console.log('txInfo', txInfo.method)
+  console.log('signatures', signatures);
 
   // const signature = signatures[0];
   //
@@ -158,9 +168,6 @@ const constructionHash = async (params) => {
 * constructionParseRequest ConstructionParseRequest
 * returns ConstructionParseResponse
 * */
-
-import { decode } from '@substrate/txwrapper';
-
 const constructionParse = async (params) => {
   const { constructionParseRequest } = params;
   console.log('constructionParseRequest', params)
@@ -173,9 +180,8 @@ const constructionParse = async (params) => {
 // ref: https://wiki.polkadot.network/docs/en/build-transaction-construction
 
   // Decode an unsigned tx
-  const txInfo = decode('0x' + transaction, { metadataRpc: metadata, registry: registry.registry });
+  const txInfo = decode(JSON.parse(transaction), { metadataRpc: metadata, registry: registry.registry });
   const args = txInfo.method.args;
-  console.log('txInfo', Object.keys(txInfo))
 
   // Ensure tx is balances.transfer
   if (txInfo.method.name !== 'transfer' || txInfo.method.pallet !== 'balances') {
@@ -188,7 +194,7 @@ const constructionParse = async (params) => {
   }
 
   // TODO: need to somehow get source address but its not defined in extrinsic unless signed
-  const sourceAccountAddress = 'TODO: GET';
+  const sourceAccountAddress = txInfo.address;
   const destAccountAddress = args.dest;
 
   // Deconstruct transaction into operations
@@ -287,7 +293,25 @@ const constructionPayloads = async (params) => {
 
   // console.log('unsignedTxn', unsignedTxn)
 
-  const unsignedTransaction = signingPayload.substr(2);
+  const unsignedTransaction = JSON.stringify({
+    address: unsignedTxn.address,
+    blockHash: unsignedTxn.blockHash,
+    blockNumber: unsignedTxn.blockNumber,
+    era: unsignedTxn.era,
+    genesisHash: unsignedTxn.genesisHash,
+    method: unsignedTxn.method,
+    nonce: unsignedTxn.nonce,
+    signedExtensions: unsignedTxn.signedExtensions,
+    specVersion: unsignedTxn.specVersion,
+    tip: unsignedTxn.tip,
+    transactionVersion: unsignedTxn.transactionVersion,
+    version: unsignedTxn.version,
+  });
+
+  // console.log('unsignedTxn', unsignedTxn.toString(), unsignedTxn.toHex, unsignedTxn.toU8a);
+  // console.log('unsignedTxn', unsignedTransaction);
+  // console.log(Object.keys(unsignedTxn));
+  // return {};
 
   // ecdsa: r (32-bytes) || s (32-bytes) - 64 bytes
   // ecdsa_recovery: r (32-bytes) || s (32-bytes) || v (1-byte) - 65 bytes
@@ -299,7 +323,7 @@ const constructionPayloads = async (params) => {
   const payloads = [{
     address: senderAddress,
     account_identifier: new Types.AccountIdentifier(senderAddress),
-    hex_bytes: unsignedTransaction, // not sure correct value to go here
+    hex_bytes: signingPayload.substr(2), // not sure correct value to go here, think its signing payload
     signature_type: signatureType,
   }];
 
