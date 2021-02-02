@@ -1,5 +1,5 @@
 import RosettaSDK from 'rosetta-node-sdk';
-import { u8aToHex, hexToU8a } from '@polkadot/util';
+import { u8aToHex, hexToU8a, stringToHex, hexToString } from '@polkadot/util';
 import BN from 'bn.js';
 
 const Types = RosettaSDK.Client;
@@ -113,28 +113,29 @@ const constructionParse = async (params) => {
   const api = await getNetworkApiFromRequest(constructionParseRequest);
   const { signed, transaction } = constructionParseRequest;
 
-  const polkaTx = api.createType('Extrinsic', hexToU8a('0x' + transaction));
+  const senderAddressHex = '0x' + transaction.substr(0, 96); // 96 is address length when encoded to hex
+  const txHex = '0x' + transaction.substr(96);
+
+  const polkaTx = api.createType('Extrinsic', hexToU8a(txHex));
   const { args } = polkaTx.method.toJSON();
 
   // TODO: ensure tx is balances.transfer
+  console.log('polkaTxargs', polkaTx.method.callIndex[0], polkaTx.method.callIndex[1], args);
 
   // Ensure args are correct
   if (!args.dest || !args.value) {
     throw new Error('Extrinsic is missing dest and value args');
   }
 
-  console.log('polkaTxargs', polkaTx.method.callIndex[0], polkaTx.method.callIndex[1], args);
-
   // TODO: need to somehow get source address but its not defined in extrinsic unless signed
-  console.log('polkaTx', polkaTx, polkaTx.toJSON())
-  const sourceAccountAddress = 'sourceacc';
+  const sourceAccountAddress = hexToString(senderAddressHex);
   const destAccountAddress = args.dest;
 
+  // Deconstruct transaction into operations
   const operations = [
     Types.Operation.constructFromObject({
       'operation_identifier': new Types.OperationIdentifier(0),
       'type': 'Transfer',
-      'status': 'SUCCESS',
       'account': new Types.AccountIdentifier(sourceAccountAddress),
       'amount': new Types.Amount(
         new BN(args.value).neg().toString(),
@@ -144,7 +145,6 @@ const constructionParse = async (params) => {
     Types.Operation.constructFromObject({
       'operation_identifier': new Types.OperationIdentifier(1),
       'type': 'Transfer',
-      'status': 'SUCCESS',
       'account': new Types.AccountIdentifier(destAccountAddress),
       'amount': new Types.Amount(
         args.value.toString(),
@@ -153,31 +153,15 @@ const constructionParse = async (params) => {
     }),
   ];
 
-console.log('operations', operations)
+  console.log('operations', operations);
 
-// senderOperations [
-//   {
-//     operation_identifier: { index: 0 },
-//     type: 'Transfer',
-//     status: 'SUCCESS',
-//     account: { address: '5FJRtAZHYnUht5CTqFVkkF3UJKo7y9SommYsHgbb1UgBXGAe' },
-//     amount: { value: '-923013', currency: [Object] }
-//   }
-// ]
-// receiverOperations [
-//   {
-//     operation_identifier: { index: 1 },
-//     type: 'Transfer',
-//     status: 'SUCCESS',
-//     account: { address: '5GfV1WJYSNfYDdUHGwTVEwYzJTabGEPVxse3eUbg1Rj3kzqL' },
-//     amount: { value: '923013', currency: [Object] }
-//   }
-// ]
+  // Build list of signers, just one
+  const signers = signed ? [sourceAccountAddress] : [];
 
-
-  // TODO: deconstruct transaction into operations
-
-  return {};
+  // Create response
+  const response = new Types.ConstructionParseResponse(operations, signers);
+  response.account_identifier_signers = signers.map(signer => new Types.AccountIdentifier(signer));
+  return response;
 };
 
 /**
@@ -230,8 +214,9 @@ const constructionPayloads = async (params) => {
   // Create a extrinsic, transferring randomAmount units to Bob.
   const transferValue = api.createType('Balance', receiveOp.amount.value);
   const transferExtrinsic = api.tx.balances.transfer(receiveOp.account.address, transferValue);
+  const unsignedTxHash = u8aToHex(transferExtrinsic.toU8a()).substr(2);
 
-  const unsignedTxAsHex = u8aToHex(transferExtrinsic.toU8a()).substr(2);
+  const unsignedTransaction = stringToHex(senderAddress).substr(2) + unsignedTxHash;
 
   // TODO: provide proper signature type from public_keys in request
   const signatureType = 'ed25519';
@@ -246,13 +231,13 @@ const constructionPayloads = async (params) => {
   const payloads = [{
     address: senderAddress, // TODO: seems odd we supply both addresses here, maybe one is the receiver?
     account_identifier: new Types.AccountIdentifier(senderAddress),
-    hex_bytes: unsignedTxAsHex,
+    hex_bytes: unsignedTxHash,
     signature_type: signatureType,
   }];
 
   console.log('payloads', payloads)
 
-  return new Types.ConstructionPayloadsResponse(unsignedTxAsHex, payloads);
+  return new Types.ConstructionPayloadsResponse(unsignedTransaction, payloads);
 };
 
 /**
