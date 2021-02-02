@@ -16,7 +16,24 @@ import {
 
 import dckCurrency from '../helpers/currency';
 
+import { cryptoWaitReady } from '@polkadot/util-crypto';
+import { Keyring } from '@polkadot/keyring';
+import {
+  Registry, DEVNODE_INFO, buildTransferTxn, signTxn,
+} from '../offline-signing';
+import { metadataRpc as metadata } from '../offline-signing/devnode-metadata.json';
+
+
 /* Data API: Construction */
+
+function paramsToPolkaTx(api, transaction) {
+  const senderAddressHex = '0xFF';
+  // const senderAddressHex = '0x' + transaction.substr(0, 96); // 96 is address length when encoded to hex
+  // const txHex = '0x' + transaction.substr(96);
+  // const polkaTx = api.createType('Extrinsic', hexToU8a(txHex));
+  const polkaTx = api.createType('Extrinsic', hexToU8a('0x' + transaction));
+  return { polkaTx, senderAddressHex };
+}
 
 /**
 * Get Transaction Construction Metadata
@@ -27,10 +44,22 @@ import dckCurrency from '../helpers/currency';
 * */
 const constructionMetadata = async (params) => {
   const { constructionMetadataRequest } = params;
-  console.log('constructionMetadata', constructionMetadataRequest)
+  const api = await getNetworkApiFromRequest(constructionMetadataRequest);
+  const { options } = constructionMetadataRequest;
 
+  // Get signing info for extrinsic
+  const nonce = (await api.query.system.account(options.from)).nonce.toNumber();
+  const signingInfo = await api.derive.tx.signingInfo(options.from, nonce);
+  const blockNumber = signingInfo.header.number.toNumber();
+  const blockHash = await api.rpc.chain.getBlockHash(signingInfo.header.number);
+  const eraPeriod = signingInfo.mortalLength;
+
+  // Format into metadata object
   const response = new Types.ConstructionMetadataResponse({
-    // We don't need any metadata?
+    nonce,
+    blockHash,
+    blockNumber,
+    eraPeriod,
   });
 
   // TODO: proper suggested fee of extrinsic
@@ -61,12 +90,31 @@ const constructionSubmit = async (params) => {
 * Create Network Transaction from Signatures
 * Combine creates a network-specific transaction from an unsigned transaction and an array of provided signatures. The signed transaction returned from this method will be sent to the `/construction/submit` endpoint by the caller.
 *
+* [OFFLINE]
 * constructionCombineRequest ConstructionCombineRequest
 * returns ConstructionCombineResponse
 * */
 const constructionCombine = async (params) => {
-  console.log('constructionCombine', params)
   const { constructionCombineRequest } = params;
+  console.log('constructionCombineRequest', params)
+
+  const { unsigned_transaction, signatures } = constructionCombineRequest;
+  // const { polkaTx, senderAddressHex } = paramsToPolkaTx(api, unsigned_transaction);
+  // const { args } = polkaTx.method.toJSON();
+
+  // console.log('signatures', signatures);
+
+  // const signature = signatures[0];
+  //
+  // const { address, hex_bytes, account_identifier, signature_type } = signature.signing_payload;
+  //
+  // const sourceAccountAddress = hexToString(senderAddressHex);
+
+  // polkaTx.addSignature(sourceAccountAddress, )
+
+  // console.log('sourceAccountAddress', sourceAccountAddress)
+  // console.log('polkaTx combine', polkaTx.toHuman())
+
   return {};
 };
 
@@ -74,6 +122,7 @@ const constructionCombine = async (params) => {
 * Derive an Address from a PublicKey
 * Derive returns the network-specific address associated with a public key. Blockchains that require an on-chain action to create an account should not implement this method.
 *
+* [OFFLINE]
 * constructionDeriveRequest ConstructionDeriveRequest
 * returns ConstructionDeriveResponse
 * */
@@ -91,6 +140,7 @@ const constructionDerive = async (params) => {
 * Get the Hash of a Signed Transaction
 * TransactionHash returns the network-specific transaction hash for a signed transaction.
 *
+* [OFFLINE]
 * constructionHashRequest ConstructionHashRequest
 * returns TransactionIdentifierResponse
 * */
@@ -104,23 +154,33 @@ const constructionHash = async (params) => {
 * Parse a Transaction
 * Parse is called on both unsigned and signed transactions to understand the intent of the formulated transaction. This is run as a sanity check before signing (after `/construction/payloads`) and before broadcast (after `/construction/combine`).
 *
+* [OFFLINE]
 * constructionParseRequest ConstructionParseRequest
 * returns ConstructionParseResponse
 * */
+
+import { decode } from '@substrate/txwrapper';
+
 const constructionParse = async (params) => {
   const { constructionParseRequest } = params;
-  console.log('parseparams', params)
-  const api = await getNetworkApiFromRequest(constructionParseRequest);
+  console.log('constructionParseRequest', params)
+
   const { signed, transaction } = constructionParseRequest;
 
-  const senderAddressHex = '0x' + transaction.substr(0, 96); // 96 is address length when encoded to hex
-  const txHex = '0x' + transaction.substr(96);
+  // TODO: get chainInfo from network params
+  const registry = new Registry({ chainInfo: DEVNODE_INFO, metadata });
 
-  const polkaTx = api.createType('Extrinsic', hexToU8a(txHex));
-  const { args } = polkaTx.method.toJSON();
+// ref: https://wiki.polkadot.network/docs/en/build-transaction-construction
 
-  // TODO: ensure tx is balances.transfer
-  console.log('polkaTxargs', polkaTx.method.callIndex[0], polkaTx.method.callIndex[1], args);
+  // Decode an unsigned tx
+  const txInfo = decode('0x' + transaction, { metadataRpc: metadata, registry: registry.registry });
+  const args = txInfo.method.args;
+  console.log('txInfo', Object.keys(txInfo))
+
+  // Ensure tx is balances.transfer
+  if (txInfo.method.name !== 'transfer' || txInfo.method.pallet !== 'balances') {
+    throw new Error(`Extrinsic must be method transfer and pallet balances`);
+  }
 
   // Ensure args are correct
   if (!args.dest || !args.value) {
@@ -128,7 +188,7 @@ const constructionParse = async (params) => {
   }
 
   // TODO: need to somehow get source address but its not defined in extrinsic unless signed
-  const sourceAccountAddress = hexToString(senderAddressHex);
+  const sourceAccountAddress = 'TODO: GET';
   const destAccountAddress = args.dest;
 
   // Deconstruct transaction into operations
@@ -153,7 +213,7 @@ const constructionParse = async (params) => {
     }),
   ];
 
-  console.log('operations', operations);
+  // console.log('operations', operations);
 
   // Build list of signers, just one
   const signers = signed ? [sourceAccountAddress] : [];
@@ -168,6 +228,7 @@ const constructionParse = async (params) => {
 * Generate an Unsigned Transaction and Signing Payloads
 * Payloads is called with an array of operations and the response from `/construction/metadata`. It returns an unsigned transaction blob and a collection of payloads that must be signed by particular addresses using a certain SignatureType. The array of operations provided in transaction construction often times can not specify all \"effects\" of a transaction (consider invoked transactions in Ethereum). However, they can deterministically specify the \"intent\" of the transaction, which is sufficient for construction. For this reason, parsing the corresponding transaction in the Data API (when it lands on chain) will contain a superset of whatever operations were provided during construction.
 *
+* [OFFLINE]
 * constructionPayloadsRequest ConstructionPayloadsRequest
 * returns ConstructionPayloadsResponse
 * */
@@ -175,7 +236,6 @@ const constructionPayloads = async (params) => {
   const { constructionPayloadsRequest } = params;
   const { operations } = constructionPayloadsRequest;
   console.log('constructionPayloads', constructionPayloadsRequest);
-  const api = await getNetworkApiFromRequest(constructionPayloadsRequest);
 
   // Must have 2 operations, send and receive
   if (operations.length !== 2) {
@@ -207,19 +267,27 @@ const constructionPayloads = async (params) => {
   }
 
   const senderAddress = sendOp.account.address;
+  const toAddress = receiveOp.account.address;
 
-  console.log('senderOperations', senderOperations)
-  console.log('receiverOperations', receiverOperations)
-
-  // Create a extrinsic, transferring randomAmount units to Bob.
-  const transferValue = api.createType('Balance', receiveOp.amount.value);
-  const transferExtrinsic = api.tx.balances.transfer(receiveOp.account.address, transferValue);
-  const unsignedTxHash = u8aToHex(transferExtrinsic.toU8a()).substr(2);
-
-  const unsignedTransaction = stringToHex(senderAddress).substr(2) + unsignedTxHash;
-
+  // console.log('senderOperations', senderOperations)
+  // console.log('receiverOperations', receiverOperations)
   // TODO: provide proper signature type from public_keys in request
   const signatureType = 'ed25519';
+
+  // Create a extrinsic, transferring randomAmount units to Bob.
+  const { nonce, eraPeriod, blockNumber, blockHash } = constructionPayloadsRequest.metadata;
+
+  // Initialize the registry
+  const registry = new Registry({ chainInfo: DEVNODE_INFO, metadata });
+
+  // Build the transfer txn
+  const { unsignedTxn, signingPayload } = buildTransferTxn({
+    from: senderAddress, to: toAddress, value: receiveOp.amount.value, tip: 0, nonce, eraPeriod, blockNumber, blockHash, registry,
+  });
+
+  // console.log('unsignedTxn', unsignedTxn)
+
+  const unsignedTransaction = signingPayload.substr(2);
 
   // ecdsa: r (32-bytes) || s (32-bytes) - 64 bytes
   // ecdsa_recovery: r (32-bytes) || s (32-bytes) || v (1-byte) - 65 bytes
@@ -229,12 +297,13 @@ const constructionPayloads = async (params) => {
 
   // Create an array of payloads that must be signed by the caller
   const payloads = [{
-    address: senderAddress, // TODO: seems odd we supply both addresses here, maybe one is the receiver?
+    address: senderAddress,
     account_identifier: new Types.AccountIdentifier(senderAddress),
-    hex_bytes: unsignedTxHash,
+    hex_bytes: unsignedTransaction, // not sure correct value to go here
     signature_type: signatureType,
   }];
 
+  console.log('unsignedTransaction', unsignedTransaction)
   console.log('payloads', payloads)
 
   return new Types.ConstructionPayloadsResponse(unsignedTransaction, payloads);
@@ -246,6 +315,7 @@ const constructionPayloads = async (params) => {
 * The options object returned from this endpoint will be sent to the /construction/metadata endpoint UNMODIFIED by the caller (in an offline execution environment).
 * If your Construction API implementation has configuration options, they MUST be specified in the /construction/preprocess request (in the metadata field).
 *
+* [OFFLINE]
 * constructionPreprocessRequest ConstructionPreprocessRequest
 * returns ConstructionPreprocessResponse
 * */
@@ -258,11 +328,19 @@ const constructionPreprocess = async (params) => {
     return new Types.AccountIdentifier(operation.account.address); // TODO: do we need address or pks?
   });
 
+  console.log('constructionPreprocess', operations);
+
+  const senderAddress = operations.filter(operation => {
+    return new BN(operation.amount.value).isNeg();
+  }).map(operation => {
+    return operation.account.address;
+  });
+
   // TODO: this needs implementing in rosetta-node-client-sdk
   // return new Types.ConstructionPreprocessResponse();
   return {
     options: {
-      mustBeDefined: true, // TODO: populate proper options, empty object fails construction tests
+      from: senderAddress[0],
     }, // Configuration options
     required_public_keys: requiredPublicKeys
   }
