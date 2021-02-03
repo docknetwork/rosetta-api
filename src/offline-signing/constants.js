@@ -40,10 +40,10 @@ export const DEVNODE_INFO = {
     tokenDecimals: 6,
     tokenSymbol: 'DCK',
   },
-  genesis: '0x956cd95ad4baf709e851e0fce555bffa5ae2933851cadfaeeb13fe68fa74dfc5',
-  name: 'Dock Mainnet',
+  genesis: '0xbae7b59e8d0ef61db70861f49f31e0c6145cb8c33836e2ea2fb4390996cdb174',
+  name: 'Development',
   specName: 'dock-main-runtime',
   // Next 2 fields need to change whenever they change on the chain.
-  specVersion: 19,
+  specVersion: 12,
   transactionVersion: 1,
 };
