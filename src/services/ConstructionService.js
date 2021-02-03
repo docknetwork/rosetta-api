@@ -1,8 +1,9 @@
 import RosettaSDK from 'rosetta-node-sdk';
-import { decode, createSigningPayload, methods, getTxHash } from '@substrate/txwrapper';
+import { decode, createSigningPayload, methods, getTxHash, createSignedTx } from '@substrate/txwrapper';
 import { u8aToHex, hexToU8a, stringToHex, hexToString, u8aConcat } from '@polkadot/util';
 import BN from 'bn.js';
 import { signatureVerify, decodeAddress } from '@polkadot/util-crypto';
+import { createSubmittable } from '@polkadot/api/submittable';
 
 const Types = RosettaSDK.Client;
 
@@ -27,32 +28,22 @@ import { metadataRpc as metadata } from '../offline-signing/devnode-metadata.jso
 
 import { createType, Metadata, TypeRegistry } from '@polkadot/types';
 
-function createSignedTx(
-  address,
-  signingPayload,
-  signature,
-  metadataRpc,
-  extrinsicVersion,
-  registry,
-  unsigned
-) {
-  const decoded = decode(signingPayload, { metadataRpc, registry });
-  const extrinsic = registry.createType('Extrinsic', { method: unsigned.method }, { version: unsigned.version });
-  extrinsic.addSignature(address, signature, decoded);
-  return extrinsic.toHex();
-}
-
+// function createSignedTx(
+//   address,
+//   signingPayload,
+//   signature,
+//   metadataRpc,
+//   extrinsicVersion,
+//   registry,
+//   unsigned
+// ) {
+//   const decoded = decode(signingPayload, { metadataRpc, registry });
+//   const extrinsic = registry.createType('Extrinsic', { method: unsigned.method, era: 106, eraPeriod: 765 }, { version: unsigned.version });
+//   extrinsic.addSignature(address, signature, decoded);
+//   return extrinsic.toHex();
+// }
 
 /* Data API: Construction */
-
-function paramsToPolkaTx(api, transaction) {
-  const senderAddressHex = '0xFF';
-  // const senderAddressHex = '0x' + transaction.substr(0, 96); // 96 is address length when encoded to hex
-  // const txHex = '0x' + transaction.substr(96);
-  // const polkaTx = api.createType('Extrinsic', hexToU8a(txHex));
-  const polkaTx = api.createType('Extrinsic', hexToU8a('0x' + transaction));
-  return { polkaTx, senderAddressHex };
-}
 
 /**
 * Get Transaction Construction Metadata
@@ -100,9 +91,35 @@ const constructionMetadata = async (params) => {
 * returns ConstructionSubmitResponse
 * */
 const constructionSubmit = async (params) => {
-  console.log('constructionSubmit', params)
   const { constructionSubmitRequest } = params;
-  return {};
+    console.log('constructionSubmit', constructionSubmitRequest)
+  const api = await getNetworkApiFromRequest(constructionSubmitRequest);
+  const signedTxHex = constructionSubmitRequest.signed_transaction;
+
+  // Create polkadot extrinsic type from signed tx hex
+  const tx = api.createType('Extrinsic', hexToU8a(signedTxHex), {
+    isSigned: true,
+  });
+  console.log('polkaTx', tx, tx.toHuman(), tx.addSignature, tx.signAndSend);
+
+
+  // TODO: get chainInfo from network params
+  const registry = new Registry({ chainInfo: DEVNODE_INFO, metadata });
+  const decoded = decode(signedTxHex, { metadataRpc: metadata, registry: registry.registry });
+  console.log('decoded', decoded.method, decoded.eraPeriod, decoded.nonce, decoded.tip, 'decoded')
+
+  const txHash = await api.rpc.author.submitExtrinsic(tx);
+
+  // const submittable = createSubmittable('Extrinsic', api, api._decorateMethod);
+  // const transcation = submittable(tx);
+  // console.log('transcation', transcation)
+  //
+  // const txHash = await transcation.send();
+
+  console.log('txHash', txHash)
+  return new Types.TransactionIdentifierResponse({
+    hash: txHash.substr(2),
+  });
 };
 
 /**
@@ -153,8 +170,20 @@ const constructionCombine = async (params) => {
 
   // Append signature type header then create a signed transaction
   const signatureWithHeader = u8aConcat(headerU8a, signatureU8a);
-  const signedTransaction = createSignedTx(unsignedTxJSON.from, signingPayload, signatureWithHeader, metadata, unsignedTxJSON.version, registry.registry, unsignedTxn);
+
+  // i think that the way we are creeating the signed tx is wrong because it doesnt take into account era, nonce etc
+  // const signedTransaction = createSignedTx(unsignedTxJSON.from, signingPayload, signatureWithHeader, metadata, unsignedTxJSON.version, registry.registry, unsignedTxn);
+  const signedTransaction = createSignedTx(unsignedTxn, signatureWithHeader, { metadataRpc: metadata, registry: registry.registry });
+
+  const signedDecoded = decode(signedTransaction, { metadataRpc: metadata, registry: registry.registry });
+
+  console.log('');
+  console.log('');
+  console.log('unsignedTxn', unsignedTxn.method, unsignedTxn.eraPeriod)
+  console.log('signedTransactiontxInfo', signedDecoded.method, signedDecoded.eraPeriod)
   console.log('signedTransaction', signedTransaction)
+  console.log('');
+  console.log('');
   return new Types.ConstructionCombineResponse(signedTransaction);
 };
 
@@ -221,8 +250,6 @@ const constructionParse = async (params) => {
     });
 
     const transactionJSON = polkaTx.toHuman();
-    console.log('polkaTx', polkaTx.toHuman(), polkaTx.method.args[1].toString());
-
     sourceAccountAddress = transactionJSON.signer;
     destAccountAddress = transactionJSON.method.args[0];
     value = polkaTx.method.args[1].toString();
