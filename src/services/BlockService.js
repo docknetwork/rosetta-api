@@ -114,7 +114,6 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null) {
         // test the events against the specific types we are looking for
         .forEach((record) => {
           const { event } = record;
-          // TODO: this doesnt work in current polkadot version, try upgrade?
           const extrinsicSuccess = api.events.system.ExtrinsicSuccess.is(event);
           const extrinsicFailed = api.events.system.ExtrinsicFailed.is(event);
           if (extrinsicSuccess) {
