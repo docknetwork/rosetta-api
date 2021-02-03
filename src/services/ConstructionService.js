@@ -25,6 +25,23 @@ import {
 } from '../offline-signing';
 import { metadataRpc as metadata } from '../offline-signing/devnode-metadata.json';
 
+import { createType, Metadata, TypeRegistry } from '@polkadot/types';
+
+function createSignedTx(
+  address,
+  signingPayload,
+  signature,
+  metadataRpc,
+  extrinsicVersion,
+  registry,
+  unsigned
+) {
+  const decoded = decode(signingPayload, { metadataRpc, registry });
+  const extrinsic = registry.createType('Extrinsic', { method: unsigned.method }, { version: unsigned.version });
+  extrinsic.addSignature(address, signature, decoded);
+  return extrinsic.toHex();
+}
+
 
 /* Data API: Construction */
 
@@ -96,36 +113,6 @@ const constructionSubmit = async (params) => {
 * constructionCombineRequest ConstructionCombineRequest
 * returns ConstructionCombineResponse
 * */
-
-import { createType, Metadata, TypeRegistry } from '@polkadot/types';
-
-function createSignedTx(
-  address,
-  signingPayload,
-  signature,
-  metadataRpc,
-  extrinsicVersion,
-  registry,
-  unsigned
-) {
-  // const registry = new TypeRegistry();
-  // registry.setMetadata(new Metadata(registry, metadataRpc));
-  const decoded = decode(signingPayload, { metadataRpc, registry });
-
-  // const extrinsic = registry.createType('Extrinsic', { method: decoded.method }, { version: extrinsicVersion });
-  const extrinsic = registry.createType('Extrinsic', { method: unsigned.method }, { version: unsigned.version });
-  // const extrinsic = createType(
-  //   registry,
-  //   'Extrinsic',
-  //   { method: decoded.method },
-  //   { version: extrinsicVersion }
-  // );
-
-  extrinsic.addSignature(address, signature, decoded);
-
-  return extrinsic.toHex();
-}
-
 const constructionCombine = async (params) => {
   const { constructionCombineRequest } = params;
   console.log('constructionCombineRequest', params)
@@ -214,39 +201,53 @@ const constructionHash = async (params) => {
 const constructionParse = async (params) => {
   const { constructionParseRequest } = params;
   console.log('constructionParseRequest', params)
-
   const { signed, transaction } = constructionParseRequest;
 
   // TODO: get chainInfo from network params
   const registry = new Registry({ chainInfo: DEVNODE_INFO, metadata });
 
-// ref: https://wiki.polkadot.network/docs/en/build-transaction-construction
+  let value;
+  let sourceAccountAddress;
+  let destAccountAddress;
 
-  // Decode an unsigned tx
-  const txParams = JSON.parse(transaction);
-  console.log('parsetxParams', txParams)
-  const { unsignedTxn } = buildTransferTxn({
-    ...txParams,
-    registry,
-  });
-  const txInfo = decode(unsignedTxn, { metadataRpc: metadata, registry: registry.registry });
-  // const txInfo = decode(JSON.parse(transaction), { metadataRpc: metadata, registry: registry.registry });
-  const args = txInfo.method.args;
-  console.log('txInfomethod', txInfo.method)
+  // Parse transaction
+  if (transaction.substr(0, 2) === '0x') { // Hex string, likely signed
+    const polkaTx = registry.registry.createType('Extrinsic', hexToU8a(transaction), {
+      isSigned: true,
+    });
 
-  // Ensure tx is balances.transfer
-  if (txInfo.method.name !== 'transfer' || txInfo.method.pallet !== 'balances') {
-    throw new Error(`Extrinsic must be method transfer and pallet balances`);
+    const transactionJSON = polkaTx.toHuman();
+    console.log('polkaTx', polkaTx.toHuman(), polkaTx.method.args[1].toString());
+
+    sourceAccountAddress = transactionJSON.signer;
+    destAccountAddress = transactionJSON.method.args[0];
+    value = polkaTx.method.args[1].toString();
+  } else {
+    const txParams = JSON.parse(transaction);
+    console.log('parsetxParams', txParams)
+    const { unsignedTxn } = buildTransferTxn({
+      ...txParams,
+      registry,
+    });
+    const txInfo = decode(unsignedTxn, { metadataRpc: metadata, registry: registry.registry });
+    const args = txInfo.method.args;
+    console.log('txInfomethod', txInfo.method)
+
+    // Ensure tx is balances.transfer
+    if (txInfo.method.name !== 'transfer' || txInfo.method.pallet !== 'balances') {
+      throw new Error(`Extrinsic must be method transfer and pallet balances`);
+    }
+
+    sourceAccountAddress = txInfo.address;
+    destAccountAddress = args.dest;
+    value = args.value;
   }
 
-  // Ensure args are correct
-  if (!args.dest || !args.value) {
-    throw new Error('Extrinsic is missing dest and value args');
-  }
 
-  // TODO: need to somehow get source address but its not defined in extrinsic unless signed
-  const sourceAccountAddress = txInfo.address;
-  const destAccountAddress = args.dest;
+  // Ensure arguments are correct
+  if (!destAccountAddress || typeof value === 'undefined') {
+    throw new Error('Extrinsic is missing dest and value arguments');
+  }
 
   // Deconstruct transaction into operations
   const operations = [
@@ -255,7 +256,7 @@ const constructionParse = async (params) => {
       'type': 'Transfer',
       'account': new Types.AccountIdentifier(sourceAccountAddress),
       'amount': new Types.Amount(
-        new BN(args.value).neg().toString(),
+        new BN(value).neg().toString(),
         dckCurrency
       ),
     }),
@@ -264,7 +265,7 @@ const constructionParse = async (params) => {
       'type': 'Transfer',
       'account': new Types.AccountIdentifier(destAccountAddress),
       'amount': new Types.Amount(
-        args.value.toString(),
+        value.toString(),
         dckCurrency
       ),
     }),
@@ -354,8 +355,12 @@ const constructionPayloads = async (params) => {
     registry,
   });
 
-  // console.log('unsignedTxn', unsignedTxn)
-
+  // const extrinsic = registry.registry.createType('Extrinsic', { ...unsignedTxn }, { version: unsignedTxn.version });
+  // console.log('extrinsicextrinsic', extrinsic, extrinsic._raw.signature.signer)
+  // console.log('unsignedTxn extrinsic', unsignedTxn.address, extrinsic.address, extrinsic._raw.address, extrinsic.toHex());
+  // return {};
+// 0x9c040700e56d0f5fc2c47e7e298dcc79196949286d4ab54432951526a9c328be2b269c28c6085985
+// 0x9c040700e56d0f5fc2c47e7e298dcc79196949286d4ab54432951526a9c328be2b269c28ba971a4b
   // const unsignedTransaction = JSON.stringify({
   //   blockHash: blockHash.toString(),
   //   blockNumber: blockNumber,
@@ -371,11 +376,6 @@ const constructionPayloads = async (params) => {
   // });
 
   const unsignedTransaction = JSON.stringify(txParams);
-
-  // console.log('unsignedTxn', unsignedTxn.toString(), unsignedTxn.toHex, unsignedTxn.toU8a);
-  // console.log('unsignedTxn', unsignedTransaction);
-  // console.log(Object.keys(unsignedTxn));
-  // return {};
 
   // ecdsa: r (32-bytes) || s (32-bytes) - 64 bytes
   // ecdsa_recovery: r (32-bytes) || s (32-bytes) || v (1-byte) - 65 bytes
