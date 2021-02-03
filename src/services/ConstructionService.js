@@ -1,5 +1,5 @@
 import RosettaSDK from 'rosetta-node-sdk';
-import { decode, /*createSignedTx,*/ createSigningPayload, methods } from '@substrate/txwrapper';
+import { decode, createSigningPayload, methods, getTxHash } from '@substrate/txwrapper';
 import { u8aToHex, hexToU8a, stringToHex, hexToString, u8aConcat } from '@polkadot/util';
 import BN from 'bn.js';
 import { signatureVerify, decodeAddress } from '@polkadot/util-crypto';
@@ -186,8 +186,12 @@ const constructionDerive = async (params) => {
 * */
 const constructionHash = async (params) => {
   const { constructionHashRequest } = params;
-  console.log('constructionHash', params)
-  return {};
+  console.log('constructionHash', params);
+  const signedTxHex = constructionHashRequest.signed_transaction;
+  const transactionIdentifier = getTxHash(signedTxHex);
+  return new Types.TransactionIdentifierResponse({
+    hash: transactionIdentifier.substr(2),
+  });
 };
 
 /**
