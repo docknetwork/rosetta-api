@@ -1,7 +1,8 @@
 import RosettaSDK from 'rosetta-node-sdk';
-import { decode, createSignedTx, createSigningPayload, methods } from '@substrate/txwrapper';
-import { u8aToHex, hexToU8a, stringToHex, hexToString } from '@polkadot/util';
+import { decode, /*createSignedTx,*/ createSigningPayload, methods } from '@substrate/txwrapper';
+import { u8aToHex, hexToU8a, stringToHex, hexToString, u8aConcat } from '@polkadot/util';
 import BN from 'bn.js';
+import { signatureVerify, decodeAddress } from '@polkadot/util-crypto';
 
 const Types = RosettaSDK.Client;
 
@@ -95,6 +96,36 @@ const constructionSubmit = async (params) => {
 * constructionCombineRequest ConstructionCombineRequest
 * returns ConstructionCombineResponse
 * */
+
+import { createType, Metadata, TypeRegistry } from '@polkadot/types';
+
+function createSignedTx(
+  address,
+  signingPayload,
+  signature,
+  metadataRpc,
+  extrinsicVersion,
+  registry,
+  unsigned
+) {
+  // const registry = new TypeRegistry();
+  // registry.setMetadata(new Metadata(registry, metadataRpc));
+  const decoded = decode(signingPayload, { metadataRpc, registry });
+
+  // const extrinsic = registry.createType('Extrinsic', { method: decoded.method }, { version: extrinsicVersion });
+  const extrinsic = registry.createType('Extrinsic', { method: unsigned.method }, { version: unsigned.version });
+  // const extrinsic = createType(
+  //   registry,
+  //   'Extrinsic',
+  //   { method: decoded.method },
+  //   { version: extrinsicVersion }
+  // );
+
+  extrinsic.addSignature(address, signature, decoded);
+
+  return extrinsic.toHex();
+}
+
 const constructionCombine = async (params) => {
   const { constructionCombineRequest } = params;
   console.log('constructionCombineRequest', params)
@@ -103,29 +134,41 @@ const constructionCombine = async (params) => {
   const registry = new Registry({ chainInfo: DEVNODE_INFO, metadata });
 
   const { unsigned_transaction, signatures } = constructionCombineRequest;
-  const txInfo = decode(JSON.parse(unsigned_transaction), { metadataRpc: metadata, registry: registry.registry });
-  const args = txInfo.method.args;
+  const unsignedTxJSON = JSON.parse(unsigned_transaction);
+  console.log('signatures', signatures);
+
+  const { unsignedTxn, signingPayload } = buildTransferTxn({
+    ...unsignedTxJSON,
+    registry,
+  });
+  const txInfo = decode(unsignedTxn, { metadataRpc: metadata, registry: registry.registry });
 
   // Ensure tx is balances.transfer
   if (txInfo.method.name !== 'transfer' || txInfo.method.pallet !== 'balances') {
     throw new Error(`Extrinsic must be method transfer and pallet balances`);
   }
 
-  console.log('txInfo', txInfo.method)
-  console.log('signatures', signatures);
+  // Get signature hex
+  const signatureHex = '0x' + signatures[0].hex_bytes;
 
-  // const signature = signatures[0];
-  //
-  // const { address, hex_bytes, account_identifier, signature_type } = signature.signing_payload;
-  //
-  // const sourceAccountAddress = hexToString(senderAddressHex);
+  // Verify the message
+  console.log('signatureVerify', signingPayload, signatureHex, unsignedTxJSON.from);
+  const signer = u8aToHex(decodeAddress(unsignedTxJSON.from));
+  const signatureU8a = hexToU8a(signatureHex);
+  const { isValid } = signatureVerify(signingPayload, signatureU8a, signer);
+  if (!isValid) {
+    throw new Error(`Signature is not valid`);
+  }
 
-  // polkaTx.addSignature(sourceAccountAddress, )
+  // Generate header byte
+  const headerU8a = new Uint8Array(1); // enum Ed25519, Sr25519, Ecdsa
+  headerU8a[0] = 0; // TODO: get from signature type
 
-  // console.log('sourceAccountAddress', sourceAccountAddress)
-  // console.log('polkaTx combine', polkaTx.toHuman())
-
-  return {};
+  // Append signature type header then create a signed transaction
+  const signatureWithHeader = u8aConcat(headerU8a, signatureU8a);
+  const signedTransaction = createSignedTx(unsignedTxJSON.from, signingPayload, signatureWithHeader, metadata, unsignedTxJSON.version, registry.registry, unsignedTxn);
+  console.log('signedTransaction', signedTransaction)
+  return new Types.ConstructionCombineResponse(signedTransaction);
 };
 
 /**
@@ -180,8 +223,16 @@ const constructionParse = async (params) => {
 // ref: https://wiki.polkadot.network/docs/en/build-transaction-construction
 
   // Decode an unsigned tx
-  const txInfo = decode(JSON.parse(transaction), { metadataRpc: metadata, registry: registry.registry });
+  const txParams = JSON.parse(transaction);
+  console.log('parsetxParams', txParams)
+  const { unsignedTxn } = buildTransferTxn({
+    ...txParams,
+    registry,
+  });
+  const txInfo = decode(unsignedTxn, { metadataRpc: metadata, registry: registry.registry });
+  // const txInfo = decode(JSON.parse(transaction), { metadataRpc: metadata, registry: registry.registry });
   const args = txInfo.method.args;
+  console.log('txInfomethod', txInfo.method)
 
   // Ensure tx is balances.transfer
   if (txInfo.method.name !== 'transfer' || txInfo.method.pallet !== 'balances') {
@@ -287,26 +338,39 @@ const constructionPayloads = async (params) => {
   const registry = new Registry({ chainInfo: DEVNODE_INFO, metadata });
 
   // Build the transfer txn
+  const txParams = {
+    from: senderAddress,
+    to: toAddress,
+    value: receiveOp.amount.value,
+    tip: 0,
+    nonce,
+    eraPeriod,
+    blockNumber,
+    blockHash,
+  };
+
   const { unsignedTxn, signingPayload } = buildTransferTxn({
-    from: senderAddress, to: toAddress, value: receiveOp.amount.value, tip: 0, nonce, eraPeriod, blockNumber, blockHash, registry,
+    ...txParams,
+    registry,
   });
 
   // console.log('unsignedTxn', unsignedTxn)
 
-  const unsignedTransaction = JSON.stringify({
-    address: unsignedTxn.address,
-    blockHash: unsignedTxn.blockHash,
-    blockNumber: unsignedTxn.blockNumber,
-    era: unsignedTxn.era,
-    genesisHash: unsignedTxn.genesisHash,
-    method: unsignedTxn.method,
-    nonce: unsignedTxn.nonce,
-    signedExtensions: unsignedTxn.signedExtensions,
-    specVersion: unsignedTxn.specVersion,
-    tip: unsignedTxn.tip,
-    transactionVersion: unsignedTxn.transactionVersion,
-    version: unsignedTxn.version,
-  });
+  // const unsignedTransaction = JSON.stringify({
+  //   blockHash: blockHash.toString(),
+  //   blockNumber: blockNumber,
+  //   nonce: nonce,
+  //   era: eraPeriod,
+  //   address: unsignedTxn.address.toString(),
+  //   genesisHash: unsignedTxn.genesisHash.toString(),
+  //   method: unsignedTxn.method,
+  //   specVersion: unsignedTxn.specVersion.toNumber(),
+  //   tip: unsignedTxn.tip.toNumber(),
+  //   transactionVersion: unsignedTxn.transactionVersion.toNumber(),
+  //   version: unsignedTxn.version.toNumber(),
+  // });
+
+  const unsignedTransaction = JSON.stringify(txParams);
 
   // console.log('unsignedTxn', unsignedTxn.toString(), unsignedTxn.toHex, unsignedTxn.toU8a);
   // console.log('unsignedTxn', unsignedTransaction);
@@ -329,6 +393,8 @@ const constructionPayloads = async (params) => {
 
   console.log('unsignedTransaction', unsignedTransaction)
   console.log('payloads', payloads)
+
+  console.log('unsignedTxn version', unsignedTxn.version)
 
   return new Types.ConstructionPayloadsResponse(unsignedTransaction, payloads);
 };
