@@ -6,6 +6,8 @@ import { signatureVerify, decodeAddress } from '@polkadot/util-crypto';
 import { createSubmittable } from '@polkadot/api/submittable';
 import { EXTRINSIC_VERSION } from '@polkadot/types/extrinsic/v4/Extrinsic';
 
+
+import errorTypes from '../helpers/error-types';
 const Types = RosettaSDK.Client;
 
 import {
@@ -105,6 +107,14 @@ const constructionMetadata = async (params) => {
 * constructionSubmitRequest ConstructionSubmitRequest
 * returns ConstructionSubmitResponse
 * */
+
+const ERROR_BROADCAST_TRANSACTION = 7;
+
+function throwError(type) {
+  const error = errorTypes[type];
+  throw new Types.Error(error.code, error.message, error.retriable);
+}
+
 const constructionSubmit = async (params) => {
   const { constructionSubmitRequest } = params;
     console.log('constructionSubmit', constructionSubmitRequest)
@@ -115,7 +125,7 @@ const constructionSubmit = async (params) => {
 
   const nonce = (await api.query.system.account(JSON.parse(signedTxHex).from)).nonce.toNumber();
   if (nonce !== JSON.parse(signedTxHex).nonce) {
-
+    return throwError(ERROR_BROADCAST_TRANSACTION);
   }
 
   console.log('submit jsontohx, current nonce:', nonce, 'stored nonce:', JSON.parse(signedTxHex).nonce);
@@ -125,12 +135,15 @@ const constructionSubmit = async (params) => {
   });
   console.log('test submit extrinsic', extrinsic.toHex())
 
-  const txHashtest = await api.rpc.author.submitExtrinsic(extrinsic.toHex());
-  console.log('it submitted! ', txHashtest);
-
-  return new Types.TransactionIdentifierResponse({
-    hash: u8aToHex(txHashtest).substr(2),
-  });
+  try {
+    const txHashtest = await api.rpc.author.submitExtrinsic(extrinsic.toHex());
+    console.log('it submitted! ', txHashtest);
+    return new Types.TransactionIdentifierResponse({
+      hash: u8aToHex(txHashtest).substr(2),
+    });
+  } catch (e) {
+    return throwError(ERROR_BROADCAST_TRANSACTION, e);
+  }
 };
 
 /**
