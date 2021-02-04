@@ -59,6 +59,11 @@ Server.register('/construction/parse', ServiceHandlers.Construction.construction
 Server.register('/construction/payloads', ServiceHandlers.Construction.constructionPayloads);
 Server.register('/construction/preprocess', ServiceHandlers.Construction.constructionPreprocess);
 
+Server.expressServer.app.use(function(req, res, next) {
+    res.setHeader("Content-Type", "application/json");
+    next();
+});
+
 async function main() {
   await Server.launch();
 }
