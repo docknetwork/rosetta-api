@@ -16,7 +16,7 @@ export default [
     },
     {
         "code": 3,
-        "message": "unable to decompress public key",
+        "message": "Unable to decompress public key",
         "retriable": false
     },
     {
@@ -41,31 +41,11 @@ export default [
     },
     {
         "code": 8,
-        "message": "Call parameters invalid",
-        "retriable": false
-    },
-    {
-        "code": 9,
-        "message": "Call output marshal failed",
-        "retriable": false
-    },
-    {
-        "code": 10,
-        "message": "Call method invalid",
-        "retriable": false
-    },
-    {
-        "code": 11,
-        "message": "Block orphaned",
-        "retriable": true
-    },
-    {
-        "code": 12,
         "message": "Invalid address",
         "retriable": false
     },
     {
-        "code": 13,
+        "code": 9,
         "message": "Polkadot not ready",
         "retriable": true
     }
