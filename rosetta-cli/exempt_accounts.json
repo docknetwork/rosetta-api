@@ -1,0 +1,11 @@
+[
+  {
+    "account_identifier": {
+      "address":"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    },
+    "currency": {
+      "symbol": "DCK",
+      "decimals": 6
+    }
+  }
+]
