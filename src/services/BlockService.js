@@ -44,9 +44,6 @@ function getEffectedAccountFromEvent(operationId, args, api) {
 function getSourceAccountFromEvent(operationId, args, api) {
   if (operationId === 'balances.transfer') {
     return args[0];
-  } else if (operationId === 'poamodule.txnfeesgiven') {
-    console.log('args', args);
-    return 'test';
   }
 }
 
@@ -54,7 +51,7 @@ function processRecordToOp(api, record, operations, extrinsicArgs, status, sourc
   const { event } = record;
 
   const operationId = `${event.section}.${event.method}`.toLowerCase();
-  console.log('operationId', operationId)
+  // console.log('operationId', operationId)
   const eventOpType = extrinsicOpMap[operationId];
   if (eventOpType) {
     const params = event.typeDef.map(({ type }) => ({ type: getTypeDef(type) }));
@@ -295,8 +292,7 @@ const block = async (params) => {
   // Get system events as this can also contain balance changing info (poa, reserved etc)
   // HACK: (i think) setting txHash to blockHash for system events, since they arent related to extrinsic hashes
   const systemTransactions = getTransactionsFromEvents(allRecords.filter(({ phase }) => !phase.isApplyExtrinsic), api, blockHash);
-  // console.log('systemTransactions', systemTransactions)
-  console.log('systemTransactions', systemTransactions, systemTransactions.length, 'allRecordslength', allRecords.length)
+  // console.log('systemTransactions', systemTransactions, systemTransactions.length, 'allRecordslength', allRecords.length)
   transactions.push(...systemTransactions);
 
   // Gather other related transaction hashes
