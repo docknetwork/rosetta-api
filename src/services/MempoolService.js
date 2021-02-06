@@ -14,6 +14,7 @@ const RosettaSDK = require('rosetta-node-sdk');
 * */
 const mempool = async (params) => {
   const { mempoolRequest } = params;
+  console.log('mempoolRequest', mempoolRequest)
   return {};
 };
 
@@ -26,6 +27,7 @@ const mempool = async (params) => {
 * */
 const mempoolTransaction = async (params) => {
   const { mempoolTransactionRequest } = params;
+  console.log('mempoolTransactionRequest', mempoolTransactionRequest)
   return {};
 };
 
