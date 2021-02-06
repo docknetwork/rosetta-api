@@ -137,7 +137,7 @@ const constructionSubmit = async (params) => {
 
   try {
     const txHashtest = await api.rpc.author.submitExtrinsic(extrinsic.toHex());
-    console.log('it submitted! ', txHashtest);
+    console.log('it submitted! ', u8aToHex(txHashtest));
     return new Types.TransactionIdentifierResponse({
       hash: u8aToHex(txHashtest).substr(2),
     });

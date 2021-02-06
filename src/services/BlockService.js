@@ -1,5 +1,6 @@
 import RosettaSDK from 'rosetta-node-sdk';
 import { getTypeDef } from '@polkadot/types';
+import { u8aToHex } from '@polkadot/util';
 import BN from 'bn.js';
 
 import {
@@ -20,7 +21,11 @@ function getOperationAmountFromEvent(operationId, args, api) {
   if (operationId === 'balances.transfer' || operationId === 'poamodule.txnfeesgiven') {
     return api.createType('Balance', args[2]);
   } else if (operationId === 'balances.reserved') {
-    return api.createType('Balance', args[1]).neg();
+    return api.createType('Balance', args[1]);
+  } else if (operationId === 'balances.endowed') {
+    return api.createType('Balance', args[1]);
+  } else if (operationId === 'poamodule.epochends') {
+    return api.createType('Balance', '9000000000'); // using 9000dck as epoch treasury rewards, this doesnt handle validator rewards atm
   } else {
     return 0;
   }
@@ -29,6 +34,8 @@ function getOperationAmountFromEvent(operationId, args, api) {
 function getEffectedAccountFromEvent(operationId, args, api) {
   if (operationId === 'poamodule.txnfeesgiven' || operationId === 'balances.transfer') {
     return args[1];
+  } else if (operationId === 'poamodule.epochends') {
+    return '5EYCAe5d818kja8P5YikNggRz4KxztMtMhxP6qSTw7Bwahwq'; // treasury, TODO: get from chain?
   } else {
     return args[0];
   }
@@ -37,6 +44,9 @@ function getEffectedAccountFromEvent(operationId, args, api) {
 function getSourceAccountFromEvent(operationId, args, api) {
   if (operationId === 'balances.transfer') {
     return args[0];
+  } else if (operationId === 'poamodule.txnfeesgiven') {
+    console.log('args', args);
+    return 'test';
   }
 }
 
@@ -44,6 +54,7 @@ function processRecordToOp(api, record, operations, extrinsicArgs, status, sourc
   const { event } = record;
 
   const operationId = `${event.section}.${event.method}`.toLowerCase();
+  console.log('operationId', operationId)
   const eventOpType = extrinsicOpMap[operationId];
   if (eventOpType) {
     const params = event.typeDef.map(({ type }) => ({ type: getTypeDef(type) }));
@@ -70,24 +81,33 @@ function processRecordToOp(api, record, operations, extrinsicArgs, status, sourc
     );
 
     // Apply minus delta balance from source
-    if (operationId === 'balances.transfer') {
+    if (operationId === 'balances.transfer'/* || operationId === 'poamodule.txnfeesgiven'*/) {
       const sourceAccountAddress = getSourceAccountFromEvent(operationId, args, api);
-      operations.push(
-        Types.Operation.constructFromObject({
-          'operation_identifier': new Types.OperationIdentifier(operations.length),
-          'type': eventOpType,
-          'status': status,
-          'account': new Types.AccountIdentifier(sourceAccountAddress),
-          'amount': new Types.Amount(
-            balanceAmount.neg().toString(),
-            dckCurrency
-          ),
-        })
-      );
+      if (sourceAccountAddress) {
+        operations.push(
+          Types.Operation.constructFromObject({
+            'operation_identifier': new Types.OperationIdentifier(operations.length),
+            'type': eventOpType,
+            'status': status,
+            'account': new Types.AccountIdentifier(sourceAccountAddress),
+            'amount': new Types.Amount(
+              balanceAmount.neg().toString(),
+              dckCurrency
+            ),
+          })
+        );
+      }
     }
   } else {
-    // console.log(`unprocessed event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) `);
+    console.error(`unprocessed event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) `);
   }
+}
+
+function getTxFeeFromEvent(api, event, txFee) {
+  if (event && event.section.toLowerCase() === 'poamodule' && event.method.toLowerCase() === 'txnfeesgiven') {
+    return api.createType('Balance', event.data[2]).neg().toString();
+  }
+  return txFee || 0;
 }
 
 function getTransactions(currentBlock, allRecords, api, shouldDisplay = null) {
@@ -97,11 +117,20 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null) {
   currentBlock.block.extrinsics.forEach((extrinsic, index) => {
     const { method: { method, section, args }, signer, hash } = extrinsic;
     const operationType = extrinsicOpMap[`${section}.${method}`.toLowerCase()];
-    if (operationType && (!shouldDisplay || shouldDisplay(section, method, hash))) {
-      const transactionIdentifier = new Types.TransactionIdentifier(hash);
-      const operations = [];
+    const transactionIdentifier = new Types.TransactionIdentifier(hash);
+    const operations = [];
 
+    let paysFee = false;
+    let txFee = 0;
+
+    if (operationType && (!shouldDisplay || shouldDisplay(section, method, hash))) {
       const sourceAccountAddress = signer.toString();
+
+      // Try find TX fee from all events
+      allRecords
+        .forEach((record) => {
+          txFee = getTxFeeFromEvent(api, record.event, txFee);
+        });
 
       let extrinsicStatus = 'UNKNOWN';
       allRecords
@@ -121,18 +150,36 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null) {
           } else if (extrinsicFailed) {
             extrinsicStatus = OPERATION_STATUS_FAILURE;
           }
+
+          if (extrinsicSuccess || extrinsicFailed) {
+            const eventData = (event.toHuman()).data[0];
+            if (eventData && eventData.paysFee === 'Yes') {
+              paysFee = true;
+            }
+          } else {
+            txFee = getTxFeeFromEvent(api, record.event, txFee);
+            processRecordToOp(api, record, operations, args, extrinsicStatus, sourceAccountAddress, allRecords);
+          }
         });
+    }
 
-      allRecords
-        // filter the specific events based on the phase and then the
-        // index of our extrinsic in the block
-        .filter(({ phase }) =>
-          phase.isApplyExtrinsic &&
-          phase.asApplyExtrinsic.eq(index)
-        )
-        // test the events against the specific types we are looking for
-        .forEach(record => processRecordToOp(api, record, operations, args, extrinsicStatus, sourceAccountAddress));
+    const extrinsicData = extrinsic.toHuman();
+    if (extrinsicData.isSigned && paysFee && txFee !== 0) {
+      operations.push(
+        Types.Operation.constructFromObject({
+          'operation_identifier': new Types.OperationIdentifier(operations.length),
+          'type': 'Fee',
+          'status': 'SUCCESS',
+          'account': new Types.AccountIdentifier(extrinsicData.signer),
+          'amount': new Types.Amount(
+            txFee,
+            dckCurrency
+          ),
+        })
+      );
+    }
 
+    if (operations.length > 0) {
       transactions.push(new Types.Transaction(transactionIdentifier, operations));
     }
   });
@@ -140,19 +187,19 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null) {
 }
 
 
-function getTransactionsFromEvents(allRecords, api, txHash) {
-  const transactions = [];
-  const transactionIdentifier = new Types.TransactionIdentifier(txHash);
-  const operations = [];
+function getTransactionsFromEvents(allRecords, api, blockHash) {
   const sourceAccountAddress = 'system';
   const extrinsicStatus = OPERATION_STATUS_SUCCESS;
-
-  // TODO: we need to use args from events!!!!
-  allRecords.forEach(record => processRecordToOp(api, record, operations, ['test', 999], extrinsicStatus, sourceAccountAddress));
-
-  if (operations.length) {
-    transactions.push(new Types.Transaction(transactionIdentifier, operations));
-  }
+  const transactions = allRecords.map(record => {
+    const operations = [];
+    processRecordToOp(api, record, operations, null, extrinsicStatus, sourceAccountAddress, allRecords);
+    if (operations.length) {
+      const transactionIdentifier = new Types.TransactionIdentifier(u8aToHex(record.hash));
+      return new Types.Transaction(transactionIdentifier, operations);
+    }
+  }).filter(event => {
+    return event !== undefined;
+  });
 
   return transactions;
 }
@@ -163,7 +210,7 @@ function getExtrinsicHashes(currentBlock, allRecords, api, shouldDisplay = null)
     if (!shouldDisplay || shouldDisplay(section, method)) {
       // const operationType = extrinsicOpMap[`${section}.${method}`];
       // if (operationType) {
-        const transactionIdentifier = new Types.TransactionIdentifier(hash);
+        const transactionIdentifier = new Types.TransactionIdentifier(allRecords.hash);
         transactions.push(transactionIdentifier);
       // }
     }
@@ -249,6 +296,7 @@ const block = async (params) => {
   // HACK: (i think) setting txHash to blockHash for system events, since they arent related to extrinsic hashes
   const systemTransactions = getTransactionsFromEvents(allRecords.filter(({ phase }) => !phase.isApplyExtrinsic), api, blockHash);
   // console.log('systemTransactions', systemTransactions)
+  console.log('systemTransactions', systemTransactions, systemTransactions.length, 'allRecordslength', allRecords.length)
   transactions.push(...systemTransactions);
 
   // Gather other related transaction hashes

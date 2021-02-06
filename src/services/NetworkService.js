@@ -50,7 +50,10 @@ const networkOptions = async (params) => {
     'Transfer',
     'Create',
     'Reserved',
+    'Endowed',
     'TxFeeGiven',
+    'EpochEnds',
+    'Fee',
 
     // "MINER_REWARD",
     // "UNCLE_REWARD",
