@@ -48,13 +48,23 @@ function getSourceAccountFromEvent(operationId, args, api) {
   }
 }
 
-function processRecordToOp(api, record, operations, extrinsicArgs, status, sourceAccountAddress) {
+/*
+  problem:
+  a block may contain multiple extrinsics by different signers
+  an extrinsic signer is not always the source of funds in balance changes (sudo calls etc)
+  sometimes source account is defined in event data (sudo setbalance), other times it isnt (balances.transfer)
+*/
+// TODO: failure events are not displayed!
+function processRecordToOp(api, record, operations, extrinsicArgs, status, allRecords) {
   const { event } = record;
 
   const operationId = `${event.section}.${event.method}`.toLowerCase();
+  console.log('operationId', operationId, status)
+
   // console.log('operationId', operationId)
   const eventOpType = extrinsicOpMap[operationId];
   if (eventOpType) {
+    console.error(`proessing event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) ${eventOpType}`);
     const params = event.typeDef.map(({ type }) => ({ type: getTypeDef(type) }));
     const values = event.data.map((value) => ({ isValid: true, value }));
     const args = params.map((param, index) => {
@@ -64,7 +74,24 @@ function processRecordToOp(api, record, operations, extrinsicArgs, status, sourc
     const destAccountAddress = getEffectedAccountFromEvent(operationId, args, api);
     const balanceAmount = getOperationAmountFromEvent(operationId, args, api);
 
-    // Operations map to balance changing events
+    // Apply minus delta balance from source (typically index 0)
+    const sourceAccountAddress = getSourceAccountFromEvent(operationId, args, api, allRecords);
+    if (sourceAccountAddress) {
+      operations.push(
+        Types.Operation.constructFromObject({
+          'operation_identifier': new Types.OperationIdentifier(operations.length),
+          'type': eventOpType,
+          'status': status,
+          'account': new Types.AccountIdentifier(sourceAccountAddress),
+          'amount': new Types.Amount(
+            balanceAmount.neg().toString(),
+            dckCurrency
+          ),
+        })
+      );
+    }
+
+    // Operations map to balance changing events (typically index 1)
     operations.push(
       Types.Operation.constructFromObject({
         'operation_identifier': new Types.OperationIdentifier(operations.length),
@@ -77,25 +104,6 @@ function processRecordToOp(api, record, operations, extrinsicArgs, status, sourc
         ),
       })
     );
-
-    // Apply minus delta balance from source
-    if (operationId === 'balances.transfer'/* || operationId === 'poamodule.txnfeesgiven'*/) {
-      const sourceAccountAddress = getSourceAccountFromEvent(operationId, args, api);
-      if (sourceAccountAddress) {
-        operations.push(
-          Types.Operation.constructFromObject({
-            'operation_identifier': new Types.OperationIdentifier(operations.length),
-            'type': eventOpType,
-            'status': status,
-            'account': new Types.AccountIdentifier(sourceAccountAddress),
-            'amount': new Types.Amount(
-              balanceAmount.neg().toString(),
-              dckCurrency
-            ),
-          })
-        );
-      }
-    }
   } else {
     console.error(`unprocessed event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) `);
   }
@@ -108,27 +116,33 @@ function getTxFeeFromEvent(api, event, txFee) {
   return txFee || 0;
 }
 
-function getTransactions(currentBlock, allRecords, api, shouldDisplay = null) {
+function getTransactions(currentBlock, allRecords, api, shouldDisplay = null, blockHash, paymentInfos) {
   const transactions = [];
+  const fees = [];
 
   // map between the extrinsics and events
-  currentBlock.block.extrinsics.forEach((extrinsic, index) => {
+  console.log('currentBlock.block.extrinsics.', currentBlock.block.extrinsics.length);
+
+
+  const extrinsicCount = currentBlock.block.extrinsics.length;
+  const extrinsics = currentBlock.block.extrinsics;
+  extrinsics.forEach((extrinsic, index) => {
     const { method: { method, section, args }, signer, hash } = extrinsic;
+    const extrinsicAction = `${section}.${method}`.toLowerCase();
+    if (extrinsicAction === 'timestamp.set') {
+      return;
+    }
+
+    const paymentInfo = paymentInfos[index];
     const operationType = extrinsicOpMap[`${section}.${method}`.toLowerCase()];
     const transactionIdentifier = new Types.TransactionIdentifier(hash);
     const operations = [];
 
     let paysFee = false;
-    let txFee = 0;
-
     if (operationType && (!shouldDisplay || shouldDisplay(section, method, hash))) {
       const sourceAccountAddress = signer.toString();
 
-      // Try find TX fee from all events
-      allRecords
-        .forEach((record) => {
-          txFee = getTxFeeFromEvent(api, record.event, txFee);
-        });
+      console.log('operationType', operationType, sourceAccountAddress)
 
       // Get extrinsic status/fee info
       let extrinsicStatus = 'UNKNOWN';
@@ -142,8 +156,9 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null) {
         // test the events against the specific types we are looking for
         .forEach((record) => {
           const { event } = record;
-          const extrinsicSuccess = api.events.system.ExtrinsicSuccess.is(event);
-          const extrinsicFailed = api.events.system.ExtrinsicFailed.is(event);
+          const extrinsicAction = `${event.section}:${event.method}`;
+          const extrinsicSuccess = extrinsicAction === 'system:ExtrinsicSuccess';
+          const extrinsicFailed = extrinsicAction === 'system:ExtrinsicFailed';
           if (extrinsicSuccess) {
             extrinsicStatus = OPERATION_STATUS_SUCCESS;
           } else if (extrinsicFailed) {
@@ -151,6 +166,8 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null) {
           }
 
           if (extrinsicSuccess || extrinsicFailed) {
+            console.error(`event determine success/fail:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) success: ${extrinsicSuccess} fail: ${extrinsicFailed} status: ${extrinsicStatus}`);
+
             const eventData = (event.toHuman()).data[0];
             if (eventData && eventData.paysFee === 'Yes') {
               paysFee = true;
@@ -163,47 +180,48 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null) {
         // filter the specific events based on the phase and then the
         // index of our extrinsic in the block
         .filter(({ phase }) =>
-          phase.isApplyExtrinsic &&
-          phase.asApplyExtrinsic.eq(index)
+          {
+            return phase.isApplyExtrinsic &&
+            phase.asApplyExtrinsic.eq(index);
+          }
         )
         // test the events against the specific types we are looking for
-        .forEach((record) => {
+        .forEach((record, index) => {
+          console.log('record', index, record)
           const { event } = record;
-          txFee = getTxFeeFromEvent(api, record.event, txFee);
-          processRecordToOp(api, record, operations, args, extrinsicStatus, sourceAccountAddress, allRecords);
+          processRecordToOp(api, record, operations, args, extrinsicStatus, allRecords);
         });
-    }
-
-    const extrinsicData = extrinsic.toHuman();
-    if (extrinsicData.isSigned && paysFee && txFee !== 0) {
-      operations.push(
-        Types.Operation.constructFromObject({
-          'operation_identifier': new Types.OperationIdentifier(operations.length),
-          'type': 'Fee',
-          'status': 'SUCCESS',
-          'account': new Types.AccountIdentifier(extrinsicData.signer),
-          'amount': new Types.Amount(
-            txFee,
-            dckCurrency
-          ),
-        })
-      );
     }
 
     if (operations.length > 0) {
       transactions.push(new Types.Transaction(transactionIdentifier, operations));
     }
+
+    const extrinsicData = extrinsic.toHuman();
+    const txFee = paymentInfo ? paymentInfo.partialFee.neg().toString() : '';
+    if (extrinsicData.isSigned && paysFee && txFee) {
+      fees.push({
+        'account': new Types.AccountIdentifier(extrinsicData.signer),
+        'amount': new Types.Amount(
+          txFee,
+          dckCurrency
+        ),
+      });
+    }
   });
-  return transactions;
+
+  return {
+    transactions,
+    fees,
+  };
 }
 
 
 function getTransactionsFromEvents(allRecords, api, blockHash) {
-  const sourceAccountAddress = 'system';
   const extrinsicStatus = OPERATION_STATUS_SUCCESS;
   const transactions = allRecords.map(record => {
     const operations = [];
-    processRecordToOp(api, record, operations, null, extrinsicStatus, sourceAccountAddress, allRecords);
+    processRecordToOp(api, record, operations, null, extrinsicStatus, allRecords);
     if (operations.length) {
       const transactionIdentifier = new Types.TransactionIdentifier(u8aToHex(record.hash));
       return new Types.Transaction(transactionIdentifier, operations);
@@ -297,17 +315,46 @@ const block = async (params) => {
     parentHash,
   );
 
+
+  // Get payment infos for all extrinsics
+  // NOTE: we have to do this here because of some weird async generator bug in getTransactions
+  const paymentInfoPromises = [];
+  const extrinsics = currentBlock.block.extrinsics;
+  for (let index = 0; index < extrinsics.length; index++) {
+    const extrinsic = extrinsics[index];
+    paymentInfoPromises.push(api.rpc.payment.queryInfo(extrinsic.toHex(), blockHash));
+  }
+
+  const paymentInfos = await Promise.all(paymentInfoPromises);
+
+
   const allRecords = await api.query.system.events.at(blockHash);
-  const transactions = getTransactions(currentBlock, allRecords, api, (section, method) => {
+  const { transactions, fees } = getTransactions(currentBlock, allRecords, api, (section, method) => {
     return true;
     // return section === 'balances';
-  });
+  }, blockHash, paymentInfos);
 
   // Get system events as this can also contain balance changing info (poa, reserved etc)
   // HACK: (i think) setting txHash to blockHash for system events, since they arent related to extrinsic hashes
   const systemTransactions = getTransactionsFromEvents(allRecords.filter(({ phase }) => !phase.isApplyExtrinsic), api, blockHash);
-  // console.log('systemTransactions', systemTransactions, systemTransactions.length, 'allRecordslength', allRecords.length)
+
+  // Add fees to system transactions
+  if (systemTransactions.length) {
+    const operations = systemTransactions[0].operations;
+    operations.push(...fees.map((fee, feeIndex) => {
+      return Types.Operation.constructFromObject({
+        'operation_identifier': new Types.OperationIdentifier(operations.length + feeIndex),
+        'type': 'TxFeeGiven',
+        'status': 'SUCCESS',
+        ...fee,
+      });
+    }));
+  }
+
+  console.log('systemTransactions', systemTransactions, systemTransactions.length)
   transactions.push(...systemTransactions);
+
+  console.log('fees', fees)
 
   // Gather other related transaction hashes
   const otherTransactions = getExtrinsicHashes(currentBlock, allRecords, api, (section, method) => {
@@ -361,9 +408,9 @@ const blockTransaction = async (params) => {
 
   const txIdentifier = blockTransactionRequest.transaction_identifier;
   const allRecords = await api.query.system.events.at(blockHash);
-  const transactions = getTransactions(currentBlock, allRecords, api, (section, method, hash) => {
+  const { transactions, fees } = getTransactions(currentBlock, allRecords, api, (section, method, hash) => {
     return hash.toString() === txIdentifier.hash.toString();
-  });
+  }, blockHash, []);
 
   return transactions[0] || {};
 };
