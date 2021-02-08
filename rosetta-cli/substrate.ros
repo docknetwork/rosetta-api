@@ -41,7 +41,7 @@ create_account(1){
   }
 }
 
-transfer(10){
+transfer(1){
   transfer{
     transfer.network = {"network":"Development Node", "blockchain":"Substrate"};
     currency = {"symbol":"DCK", "decimals":6};
@@ -69,7 +69,7 @@ transfer(10){
       "create_limit": 100,
       "create_probability": 50
     });
-    transfer.confirmation_depth = "1";
+    transfer.confirmation_depth = "16";
     transfer.operations = [
       {
         "operation_identifier":{"index":0},
