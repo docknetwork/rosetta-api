@@ -25,6 +25,7 @@ function getOperationAmountFromEvent(operationId, args, api) {
   } else if (operationId === 'balances.endowed') {
     return api.createType('Balance', args[1]);
   } else if (operationId === 'poamodule.epochends') {
+    // TODO: pull proper value from epoch data
     return api.createType('Balance', '9000000000'); // using 9000dck as epoch treasury rewards, this doesnt handle validator rewards atm
   } else {
     return 0;
@@ -35,7 +36,7 @@ function getEffectedAccountFromEvent(operationId, args, api) {
   if (operationId === 'poamodule.txnfeesgiven' || operationId === 'balances.transfer') {
     return args[1];
   } else if (operationId === 'poamodule.epochends') {
-    return '5EYCAe5d818kja8P5YikNggRz4KxztMtMhxP6qSTw7Bwahwq'; // treasury, TODO: get from chain?
+    return '5EYCAe5d818kja8P5YikNggRz4KxztMtMhxP6qSTw7Bwahwq'; // treasury, TODO: get from chain or network info?
   } else {
     return args[0];
   }
@@ -129,6 +130,7 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null) {
           txFee = getTxFeeFromEvent(api, record.event, txFee);
         });
 
+      // Get extrinsic status/fee info
       let extrinsicStatus = 'UNKNOWN';
       allRecords
         // filter the specific events based on the phase and then the
@@ -153,10 +155,22 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null) {
             if (eventData && eventData.paysFee === 'Yes') {
               paysFee = true;
             }
-          } else {
-            txFee = getTxFeeFromEvent(api, record.event, txFee);
-            processRecordToOp(api, record, operations, args, extrinsicStatus, sourceAccountAddress, allRecords);
           }
+        });
+
+      // Parse events
+      allRecords
+        // filter the specific events based on the phase and then the
+        // index of our extrinsic in the block
+        .filter(({ phase }) =>
+          phase.isApplyExtrinsic &&
+          phase.asApplyExtrinsic.eq(index)
+        )
+        // test the events against the specific types we are looking for
+        .forEach((record) => {
+          const { event } = record;
+          txFee = getTxFeeFromEvent(api, record.event, txFee);
+          processRecordToOp(api, record, operations, args, extrinsicStatus, sourceAccountAddress, allRecords);
         });
     }
 
@@ -226,7 +240,7 @@ function getExtrinsicHashes(currentBlock, allRecords, api, shouldDisplay = null)
 * */
 const block = async (params) => {
   const { blockRequest } = params;
-  // console.log('blockRequest', blockRequest)
+  console.log('blockRequest', blockRequest)
   const api = await getNetworkApiFromRequest(blockRequest);
   const { index, hash } = blockRequest.block_identifier;
 
@@ -328,6 +342,7 @@ const block = async (params) => {
 * */
 const blockTransaction = async (params) => {
   const { blockTransactionRequest } = params;
+  console.log('blockTransactionRequest', params)
   const api = await getNetworkApiFromRequest(blockTransactionRequest);
   const { index, hash } = blockTransactionRequest.block_identifier;
 
