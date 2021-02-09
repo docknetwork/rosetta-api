@@ -7,6 +7,6 @@ export default {
   'balances.transfer': 'Transfer',
   'balances.transferkeepalive': 'Transfer',
   'system.newaccount': 'Create',
-  'poamodule.txnfeesgiven': 'TxFeeGiven',
+  'poamodule.txnfeesgiven': 'Fee',
   'poamodule.epochends': 'EpochEnds',
 };

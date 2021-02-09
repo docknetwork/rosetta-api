@@ -13,9 +13,16 @@ import dckCurrency from '../helpers/currency';
 import extrinsicOpMap from '../helpers/extrinsic-operation-map';
 
 const Types = RosettaSDK.Client;
+/*
+  problem:
+  a block may contain multiple extrinsics by different signers
+  an extrinsic signer is not always the source of funds in balance changes (sudo calls etc)
+  sometimes source account is defined in event data (sudo setbalance), other times it isnt (balances.transfer)
+*/
 
 const OPERATION_STATUS_SUCCESS = 'SUCCESS';
 const OPERATION_STATUS_FAILURE = 'FAILURE';
+const OPERATION_STATUS_UNKNOWN = 'UNKNOWN';
 
 function getOperationAmountFromEvent(operationId, args, api) {
   if (operationId === 'balances.transfer' || operationId === 'poamodule.txnfeesgiven') {
@@ -46,6 +53,23 @@ function getSourceAccountFromEvent(operationId, args, api) {
   if (operationId === 'balances.transfer') {
     return args[0];
   }
+}
+
+function getEffectedAccountFromExtrinsic(api, extrinsic, extrinsicMethod) {
+  if (extrinsicMethod === 'balances.transfer' || extrinsicMethod === 'balances.transferkeepalive') {
+    return extrinsic.method.args[0].toString();
+  }
+}
+
+function getOperationAmountFromExtrinsic(api, extrinsic, extrinsicMethod) {
+  // console.log('operationType', extrinsicMethod, extrinsic.toHuman(), extrinsic.method.args[0], extrinsic.method.args[1]);
+  if (extrinsicMethod === 'balances.transfer' || extrinsicMethod === 'balances.transferkeepalive') {
+    return api.createType('Balance', extrinsic.method.args[1]);
+  }
+}
+
+function getSourceAccountFromExtrinsic(extrinsic) {
+  return extrinsic.signer.toString();
 }
 
 function addToOperations(operations, eventOpType, status, destAccountAddress, balanceAmount, sourceAccountAddress) {
@@ -80,21 +104,11 @@ function addToOperations(operations, eventOpType, status, destAccountAddress, ba
     );
 }
 
-/*
-  problem:
-  a block may contain multiple extrinsics by different signers
-  an extrinsic signer is not always the source of funds in balance changes (sudo calls etc)
-  sometimes source account is defined in event data (sudo setbalance), other times it isnt (balances.transfer)
-*/
-// TODO: failure events are not displayed!
 function processRecordToOp(api, record, operations, extrinsicArgs, status, allRecords) {
   const { event } = record;
-
   const operationId = `${event.section}.${event.method}`.toLowerCase();
-  // console.log('operationId', operationId, status)
   const eventOpType = extrinsicOpMap[operationId];
   if (eventOpType) {
-    console.error(`proessing event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) ${eventOpType}`);
     const params = event.typeDef.map(({ type }) => ({ type: getTypeDef(type) }));
     const values = event.data.map((value) => ({ isValid: true, value }));
     const args = params.map((param, index) => {
@@ -111,33 +125,12 @@ function processRecordToOp(api, record, operations, extrinsicArgs, status, allRe
   }
 }
 
-function getTxFeeFromEvent(api, event, txFee) {
-  if (event && event.section.toLowerCase() === 'poamodule' && event.method.toLowerCase() === 'txnfeesgiven') {
-    return api.createType('Balance', event.data[2]).neg().toString();
-  }
-  return txFee || 0;
-}
-
-function getEffectedAccountFromExtrinsic(api, extrinsic, extrinsicMethod) {
-  if (extrinsicMethod === 'balances.transfer' || extrinsicMethod === 'balances.transferkeepalive') {
-    return extrinsic.method.args[0].toString();
-  }
-}
-
-function getOperationAmountFromExtrinsic(api, extrinsic, extrinsicMethod) {
-  // console.log('operationType', extrinsicMethod, extrinsic.toHuman(), extrinsic.method.args[0], extrinsic.method.args[1]);
-  if (extrinsicMethod === 'balances.transfer' || extrinsicMethod === 'balances.transferkeepalive') {
-    return api.createType('Balance', extrinsic.method.args[1]);
-  }
-}
-
 function getTransactions(currentBlock, allRecords, api, shouldDisplay = null, blockHash, paymentInfos) {
+// console.log('currentBlock.block.extrinsics.', currentBlock.block.extrinsics.length);
   const transactions = [];
   const fees = [];
 
   // map between the extrinsics and events
-  // console.log('currentBlock.block.extrinsics.', currentBlock.block.extrinsics.length);
-
   const extrinsicCount = currentBlock.block.extrinsics.length;
   const extrinsics = currentBlock.block.extrinsics;
   extrinsics.forEach((extrinsic, index) => {
@@ -158,7 +151,7 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null, bl
       const sourceAccountAddress = signer.toString();
 
       // Get extrinsic status/fee info
-      let extrinsicStatus = 'UNKNOWN';
+      let extrinsicStatus = OPERATION_STATUS_UNKNOWN;
       allRecords
         // filter the specific events based on the phase and then the
         // index of our extrinsic in the block
@@ -196,8 +189,9 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null, bl
       } else { // When an extrinsic fails we cant rely on the events to parse its operations
         const destAccountAddress = getEffectedAccountFromExtrinsic(api, extrinsic, extrinsicMethod);
         const balanceAmount = getOperationAmountFromExtrinsic(api, extrinsic, extrinsicMethod);
+        const sourceAccountAddress = getSourceAccountFromExtrinsic(extrinsic);
         if (balanceAmount) {
-          addToOperations(operations, operationType, extrinsicStatus, destAccountAddress, balanceAmount, signer.toString());
+          addToOperations(operations, operationType, extrinsicStatus, destAccountAddress, balanceAmount, sourceAccountAddress);
         }
       }
     }
@@ -226,7 +220,7 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null, bl
 }
 
 
-function getTransactionsFromEvents(allRecords, api, blockHash) {
+function getTransactionsFromEvents(allRecords, api) {
   const extrinsicStatus = OPERATION_STATUS_SUCCESS;
   const transactions = allRecords.map(record => {
     const operations = [];
@@ -331,18 +325,11 @@ const block = async (params) => {
   const extrinsics = currentBlock.block.extrinsics;
   for (let index = 0; index < extrinsics.length; index++) {
     const extrinsic = extrinsics[index];
+    // TODO: testnet seems to be unable to query payment info for older blocks, causing a bad error!
     paymentInfoPromises.push(api.rpc.payment.queryInfo(extrinsic.toHex(), blockHash));
   }
 
   const paymentInfos = await Promise.all(paymentInfoPromises);
-
-
-
-  // TODO: failed extrinsics (such as balance too low) doenst show tx fee negative
-  // or operation in transactions array. see dev: http://localhost:5555/Substrate/Development%20Node/block/727
-
-
-
   const allRecords = await api.query.system.events.at(blockHash);
   const { transactions, fees } = getTransactions(currentBlock, allRecords, api, (section, method) => {
     return true;
@@ -350,8 +337,8 @@ const block = async (params) => {
   }, blockHash, paymentInfos);
 
   // Get system events as this can also contain balance changing info (poa, reserved etc)
-  // HACK: (i think) setting txHash to blockHash for system events, since they arent related to extrinsic hashes
-  const systemTransactions = getTransactionsFromEvents(allRecords.filter(({ phase }) => !phase.isApplyExtrinsic), api, blockHash);
+  // HACK: setting txHash to blockHash for system events, since they arent related to extrinsic hashes
+  const systemTransactions = getTransactionsFromEvents(allRecords.filter(({ phase }) => !phase.isApplyExtrinsic), api);
 
   // Add fees to system transactions
   if (systemTransactions.length) {
@@ -359,21 +346,14 @@ const block = async (params) => {
     operations.push(...fees.map((fee, feeIndex) => {
       return Types.Operation.constructFromObject({
         'operation_identifier': new Types.OperationIdentifier(operations.length + feeIndex),
-        'type': 'TxFeeGiven',
-        'status': 'SUCCESS',
+        'type': 'Fee',
+        'status': OPERATION_STATUS_SUCCESS,
         ...fee,
       });
     }));
+
+    transactions.push(...systemTransactions);
   }
-
-  // console.log('systemTransactions', systemTransactions, systemTransactions.length)
-  transactions.push(...systemTransactions);
-
-  // Gather other related transaction hashes
-  const otherTransactions = getExtrinsicHashes(currentBlock, allRecords, api, (section, method) => {
-    return false; // For Substrate I don't think we need to include other_transactions in response
-    // return section !== 'balances';
-  });
 
   // Define block format
   const block = new Types.Block(
@@ -386,9 +366,7 @@ const block = async (params) => {
   // Format data into block response
   const response = new Types.BlockResponse(
     block,
-    otherTransactions,
   );
-  // response.other_transactions = otherTransactions; // TODO: discover why blockresponse type doesnt support it
 
   return response;
 };
