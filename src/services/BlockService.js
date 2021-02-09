@@ -135,14 +135,12 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null, bl
 
     const paymentInfo = paymentInfos[index];
     const operationType = extrinsicOpMap[`${section}.${method}`.toLowerCase()];
-    const transactionIdentifier = new Types.TransactionIdentifier(hash);
+    const transactionIdentifier = new Types.TransactionIdentifier(hash.toHex().substr(2));
     const operations = [];
 
     let paysFee = false;
     if (operationType && (!shouldDisplay || shouldDisplay(section, method, hash))) {
       const sourceAccountAddress = signer.toString();
-
-      console.log('operationType', operationType, sourceAccountAddress)
 
       // Get extrinsic status/fee info
       let extrinsicStatus = 'UNKNOWN';
@@ -187,7 +185,6 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null, bl
         )
         // test the events against the specific types we are looking for
         .forEach((record, index) => {
-          console.log('record', index, record)
           const { event } = record;
           processRecordToOp(api, record, operations, args, extrinsicStatus, allRecords);
         });
@@ -223,7 +220,7 @@ function getTransactionsFromEvents(allRecords, api, blockHash) {
     const operations = [];
     processRecordToOp(api, record, operations, null, extrinsicStatus, allRecords);
     if (operations.length) {
-      const transactionIdentifier = new Types.TransactionIdentifier(u8aToHex(record.hash));
+      const transactionIdentifier = new Types.TransactionIdentifier(u8aToHex(record.hash).substr(2));
       return new Types.Transaction(transactionIdentifier, operations);
     }
   }).filter(event => {
@@ -239,7 +236,7 @@ function getExtrinsicHashes(currentBlock, allRecords, api, shouldDisplay = null)
     if (!shouldDisplay || shouldDisplay(section, method)) {
       // const operationType = extrinsicOpMap[`${section}.${method}`];
       // if (operationType) {
-        const transactionIdentifier = new Types.TransactionIdentifier(allRecords.hash);
+        const transactionIdentifier = new Types.TransactionIdentifier(allRecords.hash.toString().substr(2));
         transactions.push(transactionIdentifier);
       // }
     }
@@ -326,6 +323,12 @@ const block = async (params) => {
   }
 
   const paymentInfos = await Promise.all(paymentInfoPromises);
+
+
+
+  // TODO: failed extrinsics (such as balance too low) doenst show tx fee negative
+  // or operation in transactions array. see dev: http://localhost:5555/Substrate/Development%20Node/block/727
+
 
 
   const allRecords = await api.query.system.events.at(blockHash);
