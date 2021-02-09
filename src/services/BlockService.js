@@ -59,9 +59,7 @@ function processRecordToOp(api, record, operations, extrinsicArgs, status, allRe
   const { event } = record;
 
   const operationId = `${event.section}.${event.method}`.toLowerCase();
-  console.log('operationId', operationId, status)
-
-  // console.log('operationId', operationId)
+  // console.log('operationId', operationId, status)
   const eventOpType = extrinsicOpMap[operationId];
   if (eventOpType) {
     console.error(`proessing event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) ${eventOpType}`);
@@ -105,7 +103,7 @@ function processRecordToOp(api, record, operations, extrinsicArgs, status, allRe
       })
     );
   } else {
-    console.error(`unprocessed event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) `);
+    // console.error(`unprocessed event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) `);
   }
 }
 
@@ -121,8 +119,7 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null, bl
   const fees = [];
 
   // map between the extrinsics and events
-  console.log('currentBlock.block.extrinsics.', currentBlock.block.extrinsics.length);
-
+  // console.log('currentBlock.block.extrinsics.', currentBlock.block.extrinsics.length);
 
   const extrinsicCount = currentBlock.block.extrinsics.length;
   const extrinsics = currentBlock.block.extrinsics;
@@ -255,7 +252,7 @@ function getExtrinsicHashes(currentBlock, allRecords, api, shouldDisplay = null)
 * */
 const block = async (params) => {
   const { blockRequest } = params;
-  console.log('blockRequest', blockRequest)
+  // console.log('blockRequest', blockRequest)
   const api = await getNetworkApiFromRequest(blockRequest);
   const { index, hash } = blockRequest.block_identifier;
 
@@ -354,10 +351,8 @@ const block = async (params) => {
     }));
   }
 
-  console.log('systemTransactions', systemTransactions, systemTransactions.length)
+  // console.log('systemTransactions', systemTransactions, systemTransactions.length)
   transactions.push(...systemTransactions);
-
-  console.log('fees', fees)
 
   // Gather other related transaction hashes
   const otherTransactions = getExtrinsicHashes(currentBlock, allRecords, api, (section, method) => {
@@ -392,7 +387,7 @@ const block = async (params) => {
 * */
 const blockTransaction = async (params) => {
   const { blockTransactionRequest } = params;
-  console.log('blockTransactionRequest', params)
+  // console.log('blockTransactionRequest', params)
   const api = await getNetworkApiFromRequest(blockTransactionRequest);
   const { index, hash } = blockTransactionRequest.block_identifier;
 
