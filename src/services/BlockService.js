@@ -48,32 +48,8 @@ function getSourceAccountFromEvent(operationId, args, api) {
   }
 }
 
-/*
-  problem:
-  a block may contain multiple extrinsics by different signers
-  an extrinsic signer is not always the source of funds in balance changes (sudo calls etc)
-  sometimes source account is defined in event data (sudo setbalance), other times it isnt (balances.transfer)
-*/
-// TODO: failure events are not displayed!
-function processRecordToOp(api, record, operations, extrinsicArgs, status, allRecords) {
-  const { event } = record;
-
-  const operationId = `${event.section}.${event.method}`.toLowerCase();
-  // console.log('operationId', operationId, status)
-  const eventOpType = extrinsicOpMap[operationId];
-  if (eventOpType) {
-    console.error(`proessing event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) ${eventOpType}`);
-    const params = event.typeDef.map(({ type }) => ({ type: getTypeDef(type) }));
-    const values = event.data.map((value) => ({ isValid: true, value }));
-    const args = params.map((param, index) => {
-      return values[index].value;
-    });
-
-    const destAccountAddress = getEffectedAccountFromEvent(operationId, args, api);
-    const balanceAmount = getOperationAmountFromEvent(operationId, args, api);
-
-    // Apply minus delta balance from source (typically index 0)
-    const sourceAccountAddress = getSourceAccountFromEvent(operationId, args, api, allRecords);
+function addToOperations(operations, eventOpType, status, destAccountAddress, balanceAmount, sourceAccountAddress) {
+  // Apply minus delta balance from source (typically index 0)
     if (sourceAccountAddress) {
       operations.push(
         Types.Operation.constructFromObject({
@@ -102,6 +78,34 @@ function processRecordToOp(api, record, operations, extrinsicArgs, status, allRe
         ),
       })
     );
+}
+
+/*
+  problem:
+  a block may contain multiple extrinsics by different signers
+  an extrinsic signer is not always the source of funds in balance changes (sudo calls etc)
+  sometimes source account is defined in event data (sudo setbalance), other times it isnt (balances.transfer)
+*/
+// TODO: failure events are not displayed!
+function processRecordToOp(api, record, operations, extrinsicArgs, status, allRecords) {
+  const { event } = record;
+
+  const operationId = `${event.section}.${event.method}`.toLowerCase();
+  // console.log('operationId', operationId, status)
+  const eventOpType = extrinsicOpMap[operationId];
+  if (eventOpType) {
+    console.error(`proessing event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) ${eventOpType}`);
+    const params = event.typeDef.map(({ type }) => ({ type: getTypeDef(type) }));
+    const values = event.data.map((value) => ({ isValid: true, value }));
+    const args = params.map((param, index) => {
+      return values[index].value;
+    });
+
+    const destAccountAddress = getEffectedAccountFromEvent(operationId, args, api);
+    const balanceAmount = getOperationAmountFromEvent(operationId, args, api);
+    const sourceAccountAddress = getSourceAccountFromEvent(operationId, args, api, allRecords);
+
+    addToOperations(operations, eventOpType, status, destAccountAddress, balanceAmount, sourceAccountAddress);
   } else {
     // console.error(`unprocessed event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) `);
   }
@@ -112,6 +116,19 @@ function getTxFeeFromEvent(api, event, txFee) {
     return api.createType('Balance', event.data[2]).neg().toString();
   }
   return txFee || 0;
+}
+
+function getEffectedAccountFromExtrinsic(api, extrinsic, extrinsicMethod) {
+  if (extrinsicMethod === 'balances.transfer' || extrinsicMethod === 'balances.transferkeepalive') {
+    return extrinsic.method.args[0].toString();
+  }
+}
+
+function getOperationAmountFromExtrinsic(api, extrinsic, extrinsicMethod) {
+  // console.log('operationType', extrinsicMethod, extrinsic.toHuman(), extrinsic.method.args[0], extrinsic.method.args[1]);
+  if (extrinsicMethod === 'balances.transfer' || extrinsicMethod === 'balances.transferkeepalive') {
+    return api.createType('Balance', extrinsic.method.args[1]);
+  }
 }
 
 function getTransactions(currentBlock, allRecords, api, shouldDisplay = null, blockHash, paymentInfos) {
@@ -131,7 +148,8 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null, bl
     }
 
     const paymentInfo = paymentInfos[index];
-    const operationType = extrinsicOpMap[`${section}.${method}`.toLowerCase()];
+    const extrinsicMethod = `${section}.${method}`.toLowerCase();
+    const operationType = extrinsicOpMap[extrinsicMethod];
     const transactionIdentifier = new Types.TransactionIdentifier(hash.toHex().substr(2));
     const operations = [];
 
@@ -161,30 +179,27 @@ function getTransactions(currentBlock, allRecords, api, shouldDisplay = null, bl
           }
 
           if (extrinsicSuccess || extrinsicFailed) {
-            console.error(`event determine success/fail:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) success: ${extrinsicSuccess} fail: ${extrinsicFailed} status: ${extrinsicStatus}`);
-
-            const eventData = (event.toHuman()).data[0];
-            if (eventData && eventData.paysFee === 'Yes') {
-              paysFee = true;
-            }
+            const eventData = (event.toHuman()).data;
+            eventData.forEach(data => {
+              if (data && data.paysFee === 'Yes') {
+                paysFee = true;
+              }
+            });
           }
         });
 
-      // Parse events
-      allRecords
-        // filter the specific events based on the phase and then the
-        // index of our extrinsic in the block
-        .filter(({ phase }) =>
-          {
-            return phase.isApplyExtrinsic &&
-            phase.asApplyExtrinsic.eq(index);
-          }
-        )
-        // test the events against the specific types we are looking for
-        .forEach((record, index) => {
-          const { event } = record;
-          processRecordToOp(api, record, operations, args, extrinsicStatus, allRecords);
-        });
+      if (extrinsicStatus === OPERATION_STATUS_SUCCESS) {
+        // Parse events
+        allRecords
+          .filter(({ phase }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(index))
+          .forEach((record, index) => processRecordToOp(api, record, operations, args, extrinsicStatus, allRecords));
+      } else { // When an extrinsic fails we cant rely on the events to parse its operations
+        const destAccountAddress = getEffectedAccountFromExtrinsic(api, extrinsic, extrinsicMethod);
+        const balanceAmount = getOperationAmountFromExtrinsic(api, extrinsic, extrinsicMethod);
+        if (balanceAmount) {
+          addToOperations(operations, operationType, extrinsicStatus, destAccountAddress, balanceAmount, signer.toString());
+        }
+      }
     }
 
     if (operations.length > 0) {
