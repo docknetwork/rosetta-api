@@ -2,7 +2,14 @@ import { ApiPromise, WsProvider, Keyring } from '@polkadot/api';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
 import networkIdentifiers from '../network';
 
+import {
+  Registry,
+  DEVNODE_INFO,
+} from '../offline-signing';
+import { metadataRpc as metadata } from '../offline-signing/devnode-metadata.json';
+
 const connections = {};
+const registries = {};
 
 class SubstrateNetworkConnection {
   constructor({ nodeAddress, types }) {
@@ -59,4 +66,14 @@ export async function getNetworkConnection(networkIdentifier) {
   }
 
   return connections[nodeAddress];
+}
+
+export function getNetworkRegistryFromRequest(networkRequest) {
+  const targetNetworkIdentifier = networkRequest.network_identifier || networkIdentifiers[0];
+  const networkIdentifier = getNetworkIdentifier(targetNetworkIdentifier);
+  const { nodeAddress } = networkIdentifier;
+  if (!registries[nodeAddress]) {
+    registries[nodeAddress] = new Registry({ chainInfo: DEVNODE_INFO, metadata });// TODO: use proper chaininfo!
+  }
+  return registries[nodeAddress];
 }

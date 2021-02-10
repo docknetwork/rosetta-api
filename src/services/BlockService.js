@@ -24,6 +24,12 @@ const OPERATION_STATUS_SUCCESS = 'SUCCESS';
 const OPERATION_STATUS_FAILURE = 'FAILURE';
 const OPERATION_STATUS_UNKNOWN = 'UNKNOWN';
 
+async function getDefaultPayment() {
+  return {
+    partialFee: new BN('0'),
+  };
+}
+
 function getOperationAmountFromEvent(operationId, args, api) {
   if (operationId === 'balances.transfer' || operationId === 'poamodule.txnfeesgiven') {
     return api.createType('Balance', args[2]);
@@ -317,13 +323,6 @@ const block = async (params) => {
     parentBlock.block.header.number.toNumber(),
     parentHash,
   );
-
-  async function getDefaultPayment() {
-    return {
-      partialFee: new BN('0'),
-    };
-  }
-
 
   // Get payment infos for all extrinsics
   const paymentInfoPromises = [];

@@ -22,15 +22,17 @@ import {
   getNetworkConnection,
   getNetworkIdentifier,
   getNetworkApiFromRequest,
+  getNetworkRegistryFromRequest,
 } from '../substrate/connections';
 
 import dckCurrency from '../helpers/currency';
 import {
-  Registry, DEVNODE_INFO, buildTransferTxn, signTxn,
+  buildTransferTxn, signTxn,
 } from '../offline-signing';
 import { metadataRpc as metadata } from '../offline-signing/devnode-metadata.json';
 
 const Types = RosettaSDK.Client;
+
 
 function jsonToTx(transaction, options = {}) {
   const txParams = JSON.parse(transaction);
@@ -108,7 +110,7 @@ const constructionSubmit = async (params) => {
   const { constructionSubmitRequest } = params;
   const api = await getNetworkApiFromRequest(constructionSubmitRequest);
   const signedTxHex = constructionSubmitRequest.signed_transaction;
-  const registry = new Registry({ chainInfo: DEVNODE_INFO, metadata });
+  const registry = getNetworkRegistryFromRequest(constructionSubmitRequest);
   const nonce = (await api.query.system.account(JSON.parse(signedTxHex).from)).nonce.toNumber();
   if (nonce !== JSON.parse(signedTxHex).nonce) {
     return throwError(ERROR_BROADCAST_TRANSACTION);
@@ -140,10 +142,7 @@ const constructionSubmit = async (params) => {
 const constructionCombine = async (params) => {
   const { constructionCombineRequest } = params;
   console.log('constructionCombineRequest', params)
-
-  // TODO: get registry from network params
-  const registry = new Registry({ chainInfo: DEVNODE_INFO, metadata });
-
+  const registry = getNetworkRegistryFromRequest(constructionCombineRequest);
   const { unsigned_transaction, signatures } = constructionCombineRequest;
   const unsignedTxJSON = JSON.parse(unsigned_transaction);
 
@@ -216,9 +215,7 @@ const constructionDerive = async (params) => {
 const constructionHash = async (params) => {
   const { constructionHashRequest } = params;
   console.log('constructionHash', params);
-
-  // TODO: get registry from network params
-  const registry = new Registry({ chainInfo: DEVNODE_INFO, metadata });
+  const registry = getNetworkRegistryFromRequest(constructionHashRequest);
 
   const { extrinsic } = jsonToTx(constructionHashRequest.signed_transaction, {
     metadataRpc: metadata,
@@ -243,9 +240,7 @@ const constructionParse = async (params) => {
   const { constructionParseRequest } = params;
   console.log('constructionParseRequest', params)
   const { signed, transaction } = constructionParseRequest;
-
-  // TODO: get registry from network params
-  const registry = new Registry({ chainInfo: DEVNODE_INFO, metadata });
+  const registry = getNetworkRegistryFromRequest(constructionParseRequest);
 
   let value;
   let sourceAccountAddress;
@@ -369,7 +364,7 @@ const constructionPayloads = async (params) => {
   const { nonce, eraPeriod, blockNumber, blockHash } = constructionPayloadsRequest.metadata;
 
   // Initialize the registry
-  const registry = new Registry({ chainInfo: DEVNODE_INFO, metadata });
+  const registry = getNetworkRegistryFromRequest(constructionPayloadsRequest);
 
   // Build the transfer txn
   const txParams = {
