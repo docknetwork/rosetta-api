@@ -261,7 +261,7 @@ function getExtrinsicHashes(currentBlock, allRecords, api, shouldDisplay = null)
 * */
 const block = async (params) => {
   const { blockRequest } = params;
-  // console.log('blockRequest', blockRequest)
+  console.log('blockRequest', blockRequest)
   const api = await getNetworkApiFromRequest(blockRequest);
   const { index, hash } = blockRequest.block_identifier;
 
@@ -318,15 +318,21 @@ const block = async (params) => {
     parentHash,
   );
 
+  async function getDefaultPayment() {
+    return {
+      partialFee: new BN('0'),
+    };
+  }
+
 
   // Get payment infos for all extrinsics
-  // NOTE: we have to do this here because of some weird async generator bug in getTransactions
   const paymentInfoPromises = [];
   const extrinsics = currentBlock.block.extrinsics;
   for (let index = 0; index < extrinsics.length; index++) {
     const extrinsic = extrinsics[index];
-    // TODO: testnet seems to be unable to query payment info for older blocks, causing a bad error!
-    paymentInfoPromises.push(api.rpc.payment.queryInfo(extrinsic.toHex(), blockHash));
+    const prom = api.rpc.payment.queryInfo(extrinsic.toHex(), blockHash)
+      .catch(e => getDefaultPayment());
+    paymentInfoPromises.push(prom);
   }
 
   const paymentInfos = await Promise.all(paymentInfoPromises);
