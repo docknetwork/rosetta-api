@@ -1,14 +1,11 @@
 import { TypeRegistry } from '@polkadot/types';
 import { getSpecTypes } from '@polkadot/types-known';
 import { createMetadata } from '@substrate/txwrapper/lib/util/metadata';
-
-import types from '../../polkadot-types.json';
-
 /**
  * A registry class that stores the types, metadata and chain information.
  */
 export class Registry {
-  constructor({ chainInfo, metadata, chainTypes }) {
+  constructor({ chainInfo, metadata, types }) {
     createMetadata.clear();
 
     const registry = new TypeRegistry();
@@ -17,7 +14,7 @@ export class Registry {
     );
 
     registry.setKnownTypes({
-      types: chainTypes || types,
+      types,
     });
     registry.register(
       getSpecTypes(

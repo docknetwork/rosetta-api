@@ -1,3 +1,5 @@
+const types = require('../polkadot-types.json');
+
 module.exports = {
   blockchain: 'Substrate',
   network: 'Development Node',
@@ -14,4 +16,5 @@ module.exports = {
   // Next 2 fields need to change whenever they change on the chain.
   specVersion: 12,
   transactionVersion: 1,
+  types,
 };

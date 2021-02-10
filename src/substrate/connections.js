@@ -76,8 +76,9 @@ export function getNetworkRegistryFromRequest(networkRequest) {
   if (!registries[nodeAddress]) {
     registries[nodeAddress] = new Registry({
       chainInfo: networkIdentifier,
+      types: networkIdentifier.types,
       metadata,
-    }); // TODO: use proper chaininfo!
+    });
   }
   return registries[nodeAddress];
 }

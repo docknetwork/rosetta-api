@@ -1,17 +1,17 @@
 import RosettaSDK from 'rosetta-node-sdk';
 import fs from 'fs';
 
-import networkTypes from '../polkadot-types.json';
-
 // Networks folder relative to execution publicPath
 const networksFolder = './networks';
 
+// Extend MetworkIdentifier class to set properties direct from object
 class SubstrateNetworkIdentifier extends RosettaSDK.Client.NetworkIdentifier {
   constructor({
     blockchain,
     network,
     nodeAddress,
-  }, types = {}) {
+    types = {},
+  }) {
     super(blockchain, network);
     this.nodeAddress = nodeAddress;
     this.types = types;
@@ -26,7 +26,7 @@ fs.readdir(networksFolder, (error, files) => {
   } else {
     files.forEach(file => {
       const data = require('.' + networksFolder + '/' + file);
-      networks.push(data);
+      networks.push(new SubstrateNetworkIdentifier(data));
     });
   }
 });
