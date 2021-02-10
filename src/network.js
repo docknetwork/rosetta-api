@@ -11,15 +11,29 @@ class SubstrateNetworkIdentifier extends RosettaSDK.Client.NetworkIdentifier {
 }
 
 // Local chain
-const networkIdentifierDev = new SubstrateNetworkIdentifier('Substrate', 'Development Node', 'ws://localhost:9944', networkTypes);
+const networkIdentifierDev = new SubstrateNetworkIdentifier(
+  'Substrate',
+  'Development Node',
+  'ws://localhost:9944',
+  networkTypes,
+);
 
 // Dock networks
-const networkIdentifierMainnet = new SubstrateNetworkIdentifier('Substrate', 'Dock Mainnet', 'wss://mainnet-node.dock.io', networkTypes);
-// TODO: testnet seems to be unable to query payment info for older blocks, causing a bad error!
-// const networkIdentifierTestnet = new SubstrateNetworkIdentifier('Substrate', 'Dock Testnet', 'wss://danforth-1.dock.io', networkTypes);
+const networkIdentifierMainnet = new SubstrateNetworkIdentifier(
+  'Substrate',
+  'Dock Mainnet',
+  'wss://mainnet-node.dock.io',
+  networkTypes,
+);
+const networkIdentifierTestnet = new SubstrateNetworkIdentifier(
+  'Substrate',
+  'Dock Testnet',
+  'wss://danforth-1.dock.io',
+  networkTypes,
+);
 
 export default [
   networkIdentifierDev,
-  // networkIdentifierTestnet,
+  networkIdentifierTestnet,
   networkIdentifierMainnet,
 ];

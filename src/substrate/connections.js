@@ -1,11 +1,8 @@
-import { ApiPromise, WsProvider, Keyring } from '@polkadot/api';
+import { ApiPromise, WsProvider } from '@polkadot/api';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
 import networkIdentifiers from '../network';
 
-import {
-  Registry,
-  DEVNODE_INFO,
-} from '../offline-signing';
+import { Registry, DEVNODE_INFO } from '../offline-signing';
 import { metadataRpc as metadata } from '../offline-signing/devnode-metadata.json';
 
 const connections = {};
@@ -37,7 +34,10 @@ class SubstrateNetworkConnection {
 export function getNetworkIdentifier({ blockchain, network }) {
   for (let i = 0; i < networkIdentifiers.length; i++) {
     const networkIdentifier = networkIdentifiers[i];
-    if (blockchain === networkIdentifier.blockchain && network === networkIdentifier.network) {
+    if (
+      blockchain === networkIdentifier.blockchain
+      && network === networkIdentifier.network
+    ) {
       return networkIdentifier;
     }
   }
@@ -52,9 +52,10 @@ export async function getNetworkApiFromRequest(networkRequest) {
   if (networkIdentifier) {
     const { api } = await getNetworkConnection(networkIdentifier);
     return api;
-  } else {
-    throw new Error(`Can't find network with blockchain and network of: ${blockchain}, ${network}`);
   }
+  throw new Error(
+    `Can't find network with blockchain and network of: ${blockchain}, ${network}`,
+  );
 }
 
 export async function getNetworkConnection(networkIdentifier) {
@@ -73,7 +74,10 @@ export function getNetworkRegistryFromRequest(networkRequest) {
   const networkIdentifier = getNetworkIdentifier(targetNetworkIdentifier);
   const { nodeAddress } = networkIdentifier;
   if (!registries[nodeAddress]) {
-    registries[nodeAddress] = new Registry({ chainInfo: DEVNODE_INFO, metadata });// TODO: use proper chaininfo!
+    registries[nodeAddress] = new Registry({
+      chainInfo: DEVNODE_INFO,
+      metadata,
+    }); // TODO: use proper chaininfo!
   }
   return registries[nodeAddress];
 }

@@ -16,16 +16,20 @@ export class Registry {
 
     const registry = new TypeRegistry();
     registry.setChainProperties(
-      registry.createType(
-        'ChainProperties',
-        chainInfo.properties,
-      ),
+      registry.createType('ChainProperties', chainInfo.properties),
     );
 
     registry.setKnownTypes({
       types: chainTypes || types,
     });
-    registry.register(getSpecTypes(registry, chainInfo.name, chainInfo.specName, chainInfo.specVersion));
+    registry.register(
+      getSpecTypes(
+        registry,
+        chainInfo.name,
+        chainInfo.specName,
+        chainInfo.specVersion,
+      ),
+    );
 
     registry.setMetadata(createMetadata(registry, metadata));
 

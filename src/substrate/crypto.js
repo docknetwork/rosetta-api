@@ -1,24 +1,23 @@
 import { cryptoWaitReady, encodeAddress } from '@polkadot/util-crypto';
 import { Keyring } from '@polkadot/keyring';
-import { hexToU8a } from '@polkadot/util';
 
 // TODO: define ss58 format properly, elsewhere
-  // switch (network) {
-  //   case 'dev':
-  //     return encodeAddress(addr, 42);
-  //   case 'test':
-  //     return encodeAddress(addr, 21);
-  //   case 'main':
-  //     return encodeAddress(addr, 22);
-  //   default:
-  //     throw new Error(`Network can be either test or main or dev but was passed as ${network}`);
-  // }
+// switch (network) {
+//   case 'dev':
+//     return encodeAddress(addr, 42);
+//   case 'test':
+//     return encodeAddress(addr, 21);
+//   case 'main':
+//     return encodeAddress(addr, 22);
+//   default:
+//     throw new Error(`Network can be either test or main or dev but was passed as ${network}`);
+// }
 const ss58Format = 42;
 
 const curveToTypeMap = {
-  'secp256k1': 'ecdsa',
-  'secp256r1': 'ecdsa',
-  'edwards25519': 'ed25519',
+  secp256k1: 'ecdsa',
+  secp256r1: 'ecdsa',
+  edwards25519: 'ed25519',
 };
 
 // Keyrings mapped by type (ecdsa, sr25519 etc)
@@ -39,6 +38,5 @@ export async function getKeyring(curve) {
 export async function publicKeyToAddress(hexStr, curve) {
   // const keyring = await getKeyring(curve);
   // const seed = hexToU8a(hexStr);
-  const address = encodeAddress(hexStr, ss58Format);
-  return address;
+  return encodeAddress(hexStr, ss58Format);
 }

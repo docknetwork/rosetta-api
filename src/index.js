@@ -27,17 +27,41 @@ Server.register('/mempool', ServiceHandlers.Dummy.dummy);
 Server.register('/mempool/transaction', ServiceHandlers.Dummy.dummy);
 
 /* Construction API */
-Server.register('/construction/metadata', ServiceHandlers.Construction.constructionMetadata);
-Server.register('/construction/submit', ServiceHandlers.Construction.constructionSubmit);
-Server.register('/construction/combine', ServiceHandlers.Construction.constructionCombine);
-Server.register('/construction/derive', ServiceHandlers.Construction.constructionDerive);
-Server.register('/construction/hash', ServiceHandlers.Construction.constructionHash);
-Server.register('/construction/parse', ServiceHandlers.Construction.constructionParse);
-Server.register('/construction/payloads', ServiceHandlers.Construction.constructionPayloads);
-Server.register('/construction/preprocess', ServiceHandlers.Construction.constructionPreprocess);
+Server.register(
+  '/construction/metadata',
+  ServiceHandlers.Construction.constructionMetadata,
+);
+Server.register(
+  '/construction/submit',
+  ServiceHandlers.Construction.constructionSubmit,
+);
+Server.register(
+  '/construction/combine',
+  ServiceHandlers.Construction.constructionCombine,
+);
+Server.register(
+  '/construction/derive',
+  ServiceHandlers.Construction.constructionDerive,
+);
+Server.register(
+  '/construction/hash',
+  ServiceHandlers.Construction.constructionHash,
+);
+Server.register(
+  '/construction/parse',
+  ServiceHandlers.Construction.constructionParse,
+);
+Server.register(
+  '/construction/payloads',
+  ServiceHandlers.Construction.constructionPayloads,
+);
+Server.register(
+  '/construction/preprocess',
+  ServiceHandlers.Construction.constructionPreprocess,
+);
 
 /* Enforce JSON content type */
-Server.expressServer.app.use(function(req, res, next) {
+Server.expressServer.app.use((req, res, next) => {
   res.setHeader('Content-Type', 'application/json');
   next();
 });

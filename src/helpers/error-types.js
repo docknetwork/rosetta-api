@@ -11,51 +11,51 @@ export const ERROR_BROADCAST_TRANSACTION = 7;
 export const ERROR_INVALID_ADDRESS = 8;
 
 export const errorTypes = [
-    {
-        "code": 0,
-        "message": "Endpoint not implemented",
-        "retriable": false
-    },
-    {
-        "code": 1,
-        "message": "Endpoint unavailable offline",
-        "retriable": false
-    },
-    {
-        "code": 2,
-        "message": "Polkadot error",
-        "retriable": false
-    },
-    {
-        "code": 3,
-        "message": "Unable to decompress public key",
-        "retriable": false
-    },
-    {
-        "code": 4,
-        "message": "Unable to parse intent",
-        "retriable": false
-    },
-    {
-        "code": 5,
-        "message": "Unable to parse intermediate result",
-        "retriable": false
-    },
-    {
-        "code": 6,
-        "message": "Signature invalid",
-        "retriable": false
-    },
-    {
-        "code": 7,
-        "message": "Unable to broadcast transaction",
-        "retriable": false
-    },
-    {
-        "code": 8,
-        "message": "Invalid address",
-        "retriable": false
-    },
+  {
+    code: 0,
+    message: 'Endpoint not implemented',
+    retriable: false,
+  },
+  {
+    code: 1,
+    message: 'Endpoint unavailable offline',
+    retriable: false,
+  },
+  {
+    code: 2,
+    message: 'Polkadot error',
+    retriable: false,
+  },
+  {
+    code: 3,
+    message: 'Unable to decompress public key',
+    retriable: false,
+  },
+  {
+    code: 4,
+    message: 'Unable to parse intent',
+    retriable: false,
+  },
+  {
+    code: 5,
+    message: 'Unable to parse intermediate result',
+    retriable: false,
+  },
+  {
+    code: 6,
+    message: 'Signature invalid',
+    retriable: false,
+  },
+  {
+    code: 7,
+    message: 'Unable to broadcast transaction',
+    retriable: false,
+  },
+  {
+    code: 8,
+    message: 'Invalid address',
+    retriable: false,
+  },
 ];
 
 export function throwError(type) {
