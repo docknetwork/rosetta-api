@@ -4,7 +4,7 @@
   "network": "Development Node"
  },
  "online_url": "http://localhost:8080",
- "data_directory": "./substrate",
+ "data_directory": "../substrate",
  "http_timeout": 5000,
  "max_retries": 10,
  "retry_elapsed_time": 600,
@@ -24,7 +24,7 @@
     "broadcast_limit": 1,
     "block_broadcast_limit": 1,
     "rebroadcast_all": false,
-    "constructor_dsl_file": "substrate.ros",
+    "constructor_dsl_file": "../substrate.ros",
     "end_conditions": {
       "create_account": 2,
       "transfer": 1
