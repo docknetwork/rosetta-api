@@ -10,6 +10,25 @@ import {
   getNetworkApiFromRequest,
 } from '../substrate/connections';
 
+// Rosetta API target version
+const rosettaVersion = '1.4.10';
+
+// Binary true/false success state for extrinsics
+const operationStatuses = [
+  new Types.OperationStatus('SUCCESS', true),
+  new Types.OperationStatus('FAILURE', false),
+];
+
+// List of operation supported types
+const operationTypes = [
+  'Transfer',
+  'Create',
+  'Reserved',
+  'Endowed',
+  'EpochEnds',
+  'Fee',
+];
+
 /* Data API: Network */
 
 /**
@@ -36,38 +55,6 @@ const networkOptions = async (params) => {
   // Get api connection
   const api = await getNetworkApiFromRequest(networkRequest);
   const nodeVersion = await api.rpc.system.version();
-  const rosettaVersion = '1.4.10';
-
-  // Binary true/false success state for extrinsics
-  const operationStatuses = [
-    new Types.OperationStatus('SUCCESS', true),
-    new Types.OperationStatus('FAILURE', false),
-  ];
-
-  // TODO: map proper operation types, these are cop[ied from eth]
-  // see https://polkadot.js.org/docs/substrate/events/#balances for balance related op types
-  const operationTypes = [
-    'Transfer',
-    'Create',
-    'Reserved',
-    'Endowed',
-    'TxFeeGiven',
-    'EpochEnds',
-    'Fee',
-
-    // "MINER_REWARD",
-    // "UNCLE_REWARD",
-    // "FEE",
-    // "CALL",
-    // "CREATE",
-    // "CREATE2",
-    // "SELFDESTRUCT",
-    // "CALLCODE",
-    // "DELEGATECALL",
-    // "STATICCALL",
-    // "DESTRUCT",
-  ];
-
   const errors = errorTypes.map(error => new Types.Error(error.code, error.message, error.retriable));
 
   return new Types.NetworkOptionsResponse(
@@ -103,15 +90,8 @@ const networkStatus = async (params) => {
   const currentBlockIdentifier = new Types.BlockIdentifier(currentBlock.block.header.number, currentBlock.block.header.hash.toHex());
   const genesisBlockIdentifier = new Types.BlockIdentifier(genesisBlockIndex, genesisBlockHash);
 
-  // TODO: get peers, is it relevant?
+  // Dont need any peers for now, format response 
   const peers = [];
-
-  // TODO: evalulate need of sync status object for substrate
-    // "sync_status": {
-    //     "current_index": 24708,
-    //     "target_index": 11733243
-    // },
-
   return new Types.NetworkStatusResponse(
     currentBlockIdentifier,
     currentBlockTimestamp,

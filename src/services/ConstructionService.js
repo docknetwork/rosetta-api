@@ -1,14 +1,15 @@
 import RosettaSDK from 'rosetta-node-sdk';
+import BN from 'bn.js';
+
 import { decode, createSigningPayload, methods, getTxHash, createSignedTx } from '@substrate/txwrapper';
 import { u8aToHex, hexToU8a, stringToHex, hexToString, u8aConcat } from '@polkadot/util';
-import BN from 'bn.js';
-import { signatureVerify, decodeAddress } from '@polkadot/util-crypto';
-import { createSubmittable } from '@polkadot/api/submittable';
+import { cryptoWaitReady, signatureVerify, decodeAddress } from '@polkadot/util-crypto';
 import { EXTRINSIC_VERSION } from '@polkadot/types/extrinsic/v4/Extrinsic';
-
+import { createType, Metadata, TypeRegistry } from '@polkadot/types';
+import { createSubmittable } from '@polkadot/api/submittable';
+import { Keyring } from '@polkadot/keyring';
 
 import errorTypes from '../helpers/error-types';
-const Types = RosettaSDK.Client;
 
 import {
   publicKeyToAddress,
@@ -21,19 +22,21 @@ import {
 } from '../substrate/connections';
 
 import dckCurrency from '../helpers/currency';
-
-import { cryptoWaitReady } from '@polkadot/util-crypto';
-import { Keyring } from '@polkadot/keyring';
 import {
   Registry, DEVNODE_INFO, buildTransferTxn, signTxn,
 } from '../offline-signing';
 import { metadataRpc as metadata } from '../offline-signing/devnode-metadata.json';
 
-import { createType, Metadata, TypeRegistry } from '@polkadot/types';
+const ERROR_BROADCAST_TRANSACTION = 7;
+const Types = RosettaSDK.Client;
+
+function throwError(type) {
+  const error = errorTypes[type];
+  throw new Types.Error(error.code, error.message, error.retriable);
+}
 
 function jsonToTx(transaction, options = {}) {
   const txParams = JSON.parse(transaction);
-  // console.log('parsetxParams', txParams)
   const { unsignedTxn, signingPayload } = buildTransferTxn({
     ...txParams,
     ...options,
@@ -46,10 +49,7 @@ function jsonToTx(transaction, options = {}) {
     { version: EXTRINSIC_VERSION, ...unsignedTxn }
   );
 
-  // console.log('jsonToTx parsed unsigneD:', unsignedTxn) // unsignedTxn is obj
-
   if (txParams.signature) {
-    // console.log('add extrinsic signature', txParams.signature, 'payload', signingPayload, 'signer', txParams.signer)
     extrinsic.addSignature(txParams.signer, hexToU8a(txParams.signature), signingPayload);
   }
 
@@ -107,37 +107,23 @@ const constructionMetadata = async (params) => {
 * constructionSubmitRequest ConstructionSubmitRequest
 * returns ConstructionSubmitResponse
 * */
-
-const ERROR_BROADCAST_TRANSACTION = 7;
-
-function throwError(type) {
-  const error = errorTypes[type];
-  throw new Types.Error(error.code, error.message, error.retriable);
-}
-
 const constructionSubmit = async (params) => {
   const { constructionSubmitRequest } = params;
-    console.log('constructionSubmit', constructionSubmitRequest)
   const api = await getNetworkApiFromRequest(constructionSubmitRequest);
   const signedTxHex = constructionSubmitRequest.signed_transaction;
-
   const registry = new Registry({ chainInfo: DEVNODE_INFO, metadata });
-
   const nonce = (await api.query.system.account(JSON.parse(signedTxHex).from)).nonce.toNumber();
   if (nonce !== JSON.parse(signedTxHex).nonce) {
     return throwError(ERROR_BROADCAST_TRANSACTION);
   }
 
-  console.log('submit jsontohx, current nonce:', nonce, 'stored nonce:', JSON.parse(signedTxHex).nonce);
   const { extrinsic } = jsonToTx(constructionSubmitRequest.signed_transaction, {
     metadataRpc: metadata,
     registry: registry,
   });
-  console.log('test submit extrinsic', extrinsic.toHex())
 
   try {
     const txHashtest = await api.rpc.author.submitExtrinsic(extrinsic.toHex());
-    console.log('it submitted! ', u8aToHex(txHashtest));
     return new Types.TransactionIdentifierResponse({
       hash: u8aToHex(txHashtest).substr(2),
     });
@@ -163,14 +149,12 @@ const constructionCombine = async (params) => {
 
   const { unsigned_transaction, signatures } = constructionCombineRequest;
   const unsignedTxJSON = JSON.parse(unsigned_transaction);
-  console.log('signatures', signatures);
 
   // Get signature hex
   const signatureHex = '0x' + signatures[0].hex_bytes;
   const signingPayload = '0x' + signatures[0].signing_payload.hex_bytes;
 
   // Verify the message
-  console.log('signatureVerify', signingPayload, signatureHex, unsignedTxJSON.from);
   const signer = u8aToHex(decodeAddress(unsignedTxJSON.from));
   const signatureU8a = hexToU8a(signatureHex);
   const { isValid } = signatureVerify(signingPayload, signatureU8a, signer);
@@ -185,8 +169,6 @@ const constructionCombine = async (params) => {
   });
   const unsignedTxn = transaction;
   const txInfo = decode(unsignedTxn, { metadataRpc: metadata, registry: registry.registry });
-  console.log('txInfo', txInfo.blockNumber, txInfo.blockHash, txInfo.address);
-  console.log('unsignedTxn', unsignedTxn.blockNumber, unsignedTxn.blockHash, unsignedTxn.address);
 
   // Ensure tx is balances.transfer
   if (txInfo.method.name !== 'transfer' || txInfo.method.pallet !== 'balances') {
@@ -199,37 +181,11 @@ const constructionCombine = async (params) => {
 
   // Append signature type header then create a signed transaction
   const signatureWithHeader = u8aConcat(headerU8a, signatureU8a);
-  // const signedTransaction = createSignedTx(unsignedTxn, signatureWithHeader, { metadataRpc: metadata, registry: registry.registry });
-  // const signedDecoded = decode(signedTransaction, { metadataRpc: metadata, registry: registry.registry });
-  //
-  // // Sanity check signed decoded vs unsigned decoded
-  // if (signedDecoded.eraPeriod !== txInfo.eraPeriod) {
-  //   throw new Error(`createSignedTx decoding resulted in differing eraPeriod from unsigned tx`);
-  // }
-  //
-  // if (signedDecoded.version !== txInfo.version) {
-  //   throw new Error(`createSignedTx decoding resulted in differing version from unsigned tx`);
-  // }
-  //
-  // if (signedDecoded.address !== txInfo.address) {
-  //   throw new Error(`createSignedTx decoding resulted in differing address from unsigned tx`);
-  // }
-  //
-  // if (signedDecoded.nonce !== txInfo.nonce) {
-  //   throw new Error(`createSignedTx decoding resulted in differing nonce from unsigned tx`);
-  // }
-  //
-  // if (signedDecoded.tip !== txInfo.tip) {
-  //   throw new Error(`createSignedTx decoding resulted in differing tip from unsigned tx`);
-  // }
-
   const signedTxJSON = JSON.stringify({
     ...unsignedTxJSON,
     signature: u8aToHex(signatureWithHeader),
     signer: unsignedTxJSON.from,
   });
-  // console.log('txJSON1', txInfo)
-  // console.log('txJSON1', signedTxJSON)
 
   return new Types.ConstructionCombineResponse(signedTxJSON);
 };
@@ -272,9 +228,7 @@ const constructionHash = async (params) => {
     registry: registry,
   });
 
-  console.log('extrinsic hex', extrinsic.toHex())
   const transactionHashHex = getTxHash(extrinsic.toHex());
-  console.log('transactionHashHex', transactionHashHex)
   return new Types.TransactionIdentifierResponse({
     hash: transactionHashHex.substr(2),
   });
@@ -319,7 +273,6 @@ const constructionParse = async (params) => {
     const parsedTxn = parsedTx.transaction;
     const txInfo = decode(parsedTxn, { metadataRpc: metadata, registry: registry.registry });
     const args = txInfo.method.args;
-    console.log('txInfomethod', txInfo.method)
 
     // Ensure tx is balances.transfer
     if (txInfo.method.name !== 'transfer' || txInfo.method.pallet !== 'balances') {
@@ -358,8 +311,6 @@ const constructionParse = async (params) => {
       ),
     }),
   ];
-
-  // console.log('operations', operations);
 
   // Build list of signers, just one
   const signers = signed ? [sourceAccountAddress] : [];
@@ -415,8 +366,6 @@ const constructionPayloads = async (params) => {
   const senderAddress = sendOp.account.address;
   const toAddress = receiveOp.account.address;
 
-  // console.log('senderOperations', senderOperations)
-  // console.log('receiverOperations', receiverOperations)
   // TODO: provide proper signature type from public_keys in request
   const signatureType = 'ed25519';
 
@@ -460,10 +409,7 @@ const constructionPayloads = async (params) => {
     signature_type: signatureType,
   }];
 
-  console.log('payloads', payloads)
-
   const unsignedTransaction = JSON.stringify(txParams);
-  console.log('unsignedTransaction', unsignedTransaction)
   return new Types.ConstructionPayloadsResponse(unsignedTransaction, payloads);
 };
 
@@ -479,14 +425,13 @@ const constructionPayloads = async (params) => {
 * */
 const constructionPreprocess = async (params) => {
   const { constructionPreprocessRequest } = params;
+  console.log('constructionPreprocess', constructionPreprocessRequest);
   const { operations } = constructionPreprocessRequest;
 
   // Gather public keys needed for TXs
   const requiredPublicKeys = operations.map(operation => {
     return new Types.AccountIdentifier(operation.account.address); // TODO: do we need address or pks?
   });
-
-  console.log('constructionPreprocess', operations);
 
   const senderAddress = operations.filter(operation => {
     return new BN(operation.amount.value).isNeg();
