@@ -9,7 +9,10 @@ import { createType, Metadata, TypeRegistry } from '@polkadot/types';
 import { createSubmittable } from '@polkadot/api/submittable';
 import { Keyring } from '@polkadot/keyring';
 
-import errorTypes from '../helpers/error-types';
+import {
+  ERROR_BROADCAST_TRANSACTION,
+  throwError,
+} from '../helpers/error-types';
 
 import {
   publicKeyToAddress,
@@ -27,13 +30,7 @@ import {
 } from '../offline-signing';
 import { metadataRpc as metadata } from '../offline-signing/devnode-metadata.json';
 
-const ERROR_BROADCAST_TRANSACTION = 7;
 const Types = RosettaSDK.Client;
-
-function throwError(type) {
-  const error = errorTypes[type];
-  throw new Types.Error(error.code, error.message, error.retriable);
-}
 
 function jsonToTx(transaction, options = {}) {
   const txParams = JSON.parse(transaction);

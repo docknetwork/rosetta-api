@@ -3,7 +3,7 @@ import RosettaSDK from 'rosetta-node-sdk';
 const Types = RosettaSDK.Client;
 
 import networkIdentifiers from '../network';
-import errorTypes from '../helpers/error-types';
+import { errorTypes } from '../helpers/error-types';
 import {
   getNetworkConnection,
   getNetworkIdentifier,
@@ -90,7 +90,7 @@ const networkStatus = async (params) => {
   const currentBlockIdentifier = new Types.BlockIdentifier(currentBlock.block.header.number, currentBlock.block.header.hash.toHex());
   const genesisBlockIdentifier = new Types.BlockIdentifier(genesisBlockIndex, genesisBlockHash);
 
-  // Dont need any peers for now, format response 
+  // Dont need any peers for now, format response
   const peers = [];
   return new Types.NetworkStatusResponse(
     currentBlockIdentifier,

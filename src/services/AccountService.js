@@ -59,6 +59,7 @@ const balance = async (params) => {
 
 const coins = async (params) => {
   console.log('coins params', params);
+  // TODO: return not implemented error
   return {};
 };
 

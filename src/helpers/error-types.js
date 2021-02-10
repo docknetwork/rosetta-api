@@ -1,4 +1,14 @@
-export default [
+export const ERROR_NOT_IMPLEMENTED = 0;
+export const ERROR_UNAVAILABLE_OFFLINE = 1;
+export const ERROR_POLKADOT_ERROR = 2;
+export const ERROR_PUBLIC_KEY_DECOMPRESS = 3;
+export const ERROR_PARSE_INTENT = 4;
+export const ERROR_PARSE_INTERMEDIATE_RESULT = 5;
+export const ERROR_SIGNATURE_INVALID = 6;
+export const ERROR_BROADCAST_TRANSACTION = 7;
+export const ERROR_INVALID_ADDRESS = 8;
+
+export const errorTypes = [
     {
         "code": 0,
         "message": "Endpoint not implemented",
@@ -44,9 +54,9 @@ export default [
         "message": "Invalid address",
         "retriable": false
     },
-    {
-        "code": 9,
-        "message": "Polkadot not ready",
-        "retriable": true
-    }
 ];
+
+export function throwError(type) {
+  const error = errorTypes[type];
+  throw new Types.Error(error.code, error.message, error.retriable);
+}
