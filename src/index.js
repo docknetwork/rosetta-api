@@ -1,27 +1,5 @@
-/**
- * Copyright (c) 2020 DigiByte Foundation NZ Limited
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
-
-const RosettaSDK = require('rosetta-node-sdk');
-
-const ServiceHandlers = require('./services');
+import RosettaSDK from 'rosetta-node-sdk';
+import ServiceHandlers from './services';
 
 /* Create a server configuration */
 const Server = new RosettaSDK.Server({
@@ -45,9 +23,8 @@ Server.register('/account/balance', ServiceHandlers.Account.balance);
 Server.register('/account/coins', ServiceHandlers.Account.coins);
 
 /* Data API: Mempool */
-// TODO: evaluate the need for these on a substrate chain, if not needed return not implemented response code
-Server.register('/mempool', ServiceHandlers.Mempool.mempool);
-Server.register('/mempool/transaction', ServiceHandlers.Mempool.mempoolTransaction);
+Server.register('/mempool', ServiceHandlers.Dummy.dummy);
+Server.register('/mempool/transaction', ServiceHandlers.Dummy.dummy);
 
 /* Construction API */
 Server.register('/construction/metadata', ServiceHandlers.Construction.constructionMetadata);
@@ -59,9 +36,10 @@ Server.register('/construction/parse', ServiceHandlers.Construction.construction
 Server.register('/construction/payloads', ServiceHandlers.Construction.constructionPayloads);
 Server.register('/construction/preprocess', ServiceHandlers.Construction.constructionPreprocess);
 
+/* Enforce JSON content type */
 Server.expressServer.app.use(function(req, res, next) {
-    res.setHeader("Content-Type", "application/json");
-    next();
+  res.setHeader('Content-Type', 'application/json');
+  next();
 });
 
 async function main() {
