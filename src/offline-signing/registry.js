@@ -3,9 +3,6 @@ import { getSpecTypes } from '@polkadot/types-known';
 import { createMetadata } from '@substrate/txwrapper/lib/util/metadata';
 
 import types from '../../polkadot-types.json';
-import { DEVNODE_INFO, MAINNET_INFO } from './constants';
-import { metadataRpc as devMetadata } from './devnode-metadata.json';
-import { metadataRpc as mainMetadata } from './mainnet-metadata.json';
 
 /**
  * A registry class that stores the types, metadata and chain information.
@@ -50,14 +47,4 @@ export class Registry {
   get chainInfo() {
     return this._chainInfo;
   }
-}
-
-export function getMainnetRegistry() {
-  // @ts-ignore
-  return new Registry({ chainInfo: MAINNET_INFO, metadata: mainMetadata });
-}
-
-export function getDevnodeRegistry() {
-  // @ts-ignore
-  return new Registry({ chainInfo: DEVNODE_INFO, metadata: devMetadata });
 }

@@ -1,8 +1,4 @@
-// TODO: we may be able to just return not implemented error codes here
-// as we dont need this for substrate
-
-const RosettaSDK = require('rosetta-node-sdk');
-
+// TODO: maybe remove this file, determine if mempool is required
 /* Data API: Mempool */
 
 /**

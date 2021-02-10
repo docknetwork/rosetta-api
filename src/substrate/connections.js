@@ -2,7 +2,7 @@ import { ApiPromise, WsProvider } from '@polkadot/api';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
 import networkIdentifiers from '../network';
 
-import { Registry, DEVNODE_INFO } from '../offline-signing';
+import { Registry } from '../offline-signing';
 import { metadataRpc as metadata } from '../offline-signing/devnode-metadata.json';
 
 const connections = {};
@@ -75,7 +75,7 @@ export function getNetworkRegistryFromRequest(networkRequest) {
   const { nodeAddress } = networkIdentifier;
   if (!registries[nodeAddress]) {
     registries[nodeAddress] = new Registry({
-      chainInfo: DEVNODE_INFO,
+      chainInfo: networkIdentifier,
       metadata,
     }); // TODO: use proper chaininfo!
   }

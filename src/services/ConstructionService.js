@@ -4,9 +4,7 @@ import BN from 'bn.js';
 import {
   decode,
   createSigningPayload,
-  methods,
   getTxHash,
-  createSignedTx,
 } from '@substrate/txwrapper';
 import {
   u8aToHex,
@@ -14,14 +12,11 @@ import {
   u8aConcat,
 } from '@polkadot/util';
 import {
-  cryptoWaitReady,
   signatureVerify,
   decodeAddress,
 } from '@polkadot/util-crypto';
 import { EXTRINSIC_VERSION } from '@polkadot/types/extrinsic/v4/Extrinsic';
 import { createType, Metadata, TypeRegistry } from '@polkadot/types';
-import { createSubmittable } from '@polkadot/api/submittable';
-import { Keyring } from '@polkadot/keyring';
 
 import {
   ERROR_BROADCAST_TRANSACTION,
@@ -31,8 +26,6 @@ import {
 import { publicKeyToAddress } from '../substrate/crypto';
 
 import {
-  getNetworkConnection,
-  getNetworkIdentifier,
   getNetworkApiFromRequest,
   getNetworkRegistryFromRequest,
 } from '../substrate/connections';

@@ -3,8 +3,6 @@ import RosettaSDK from 'rosetta-node-sdk';
 import networkIdentifiers from '../network';
 import { errorTypes } from '../helpers/error-types';
 import {
-  getNetworkConnection,
-  getNetworkIdentifier,
   getNetworkApiFromRequest,
 } from '../substrate/connections';
 

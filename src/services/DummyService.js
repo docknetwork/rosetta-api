@@ -1,8 +1,7 @@
-import { ERROR_NOT_IMPLEMENTED, throwError } from '../helpers/error-types';
-
-const RosettaSDK = require('rosetta-node-sdk');
-
-/* Data API: Account */
+import {
+  ERROR_NOT_IMPLEMENTED,
+  throwError,
+} from '../helpers/error-types';
 
 /**
  * Any call will log to console and throw not implemented error
