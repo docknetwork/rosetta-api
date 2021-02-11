@@ -4,9 +4,8 @@ import {
   getNetworkConnection,
   getNetworkIdentifier,
   getNetworkApiFromRequest,
+  getNetworkCurrencyFromRequest,
 } from '../substrate/connections';
-
-import dckCurrency from '../helpers/currency';
 
 const Types = RosettaSDK.Client;
 
@@ -53,7 +52,7 @@ const balance = async (params) => {
 
   const validAmount = Types.Amount.constructFromObject({
     value: free.toString(),
-    currency: dckCurrency,
+    currency: getNetworkCurrencyFromRequest(accountBalanceRequest),
   });
 
   return new Types.AccountBalanceResponse(validBlock, [validAmount]);

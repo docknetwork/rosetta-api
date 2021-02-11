@@ -7,9 +7,9 @@ import {
   getNetworkConnection,
   getNetworkIdentifier,
   getNetworkApiFromRequest,
+  getNetworkCurrencyFromRequest,
 } from '../substrate/connections';
 
-import dckCurrency from '../helpers/currency';
 import extrinsicOpMap from '../helpers/extrinsic-operation-map';
 
 const Types = RosettaSDK.Client;
@@ -89,6 +89,7 @@ function addToOperations(
   destAccountAddress,
   balanceAmount,
   sourceAccountAddress,
+  currency,
 ) {
   // Apply minus delta balance from source (typically index 0)
   if (sourceAccountAddress) {
@@ -98,7 +99,7 @@ function addToOperations(
         type: eventOpType,
         status,
         account: new Types.AccountIdentifier(sourceAccountAddress),
-        amount: new Types.Amount(balanceAmount.neg().toString(), dckCurrency),
+        amount: new Types.Amount(balanceAmount.neg().toString(), currency),
       }),
     );
   }
@@ -110,7 +111,7 @@ function addToOperations(
       type: eventOpType,
       status,
       account: new Types.AccountIdentifier(destAccountAddress),
-      amount: new Types.Amount(balanceAmount.toString(), dckCurrency),
+      amount: new Types.Amount(balanceAmount.toString(), currency),
     }),
   );
 }
@@ -122,6 +123,7 @@ function processRecordToOp(
   extrinsicArgs,
   status,
   allRecords,
+  currency,
 ) {
   const { event } = record;
   const operationId = `${event.section}.${event.method}`.toLowerCase();
@@ -153,6 +155,7 @@ function processRecordToOp(
       destAccountAddress,
       balanceAmount,
       sourceAccountAddress,
+      currency,
     );
   } else {
     // console.error(`unprocessed event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) `);
@@ -166,6 +169,7 @@ function getTransactions(
   shouldDisplay,
   blockHash,
   paymentInfos,
+  currency,
 ) {
   const transactions = [];
   const fees = [];
@@ -239,6 +243,7 @@ function getTransactions(
             args,
             extrinsicStatus,
             allRecords,
+            currency,
           ));
       } else {
         // When an extrinsic fails we cant rely on the events to parse its operations
@@ -261,6 +266,7 @@ function getTransactions(
             destAccountAddress,
             balanceAmount,
             sourceAccountAddress,
+            currency,
           );
         }
       }
@@ -277,7 +283,7 @@ function getTransactions(
     if (extrinsicData.isSigned && paysFee && txFee) {
       fees.push({
         account: new Types.AccountIdentifier(extrinsicData.signer),
-        amount: new Types.Amount(txFee, dckCurrency),
+        amount: new Types.Amount(txFee, currency),
       });
     }
   });
@@ -288,7 +294,7 @@ function getTransactions(
   };
 }
 
-function getTransactionsFromEvents(allRecords, api) {
+function getTransactionsFromEvents(allRecords, api, currency) {
   const extrinsicStatus = OPERATION_STATUS_SUCCESS;
   return allRecords
     .map((record) => {
@@ -300,6 +306,7 @@ function getTransactionsFromEvents(allRecords, api) {
         null,
         extrinsicStatus,
         allRecords,
+        currency,
       );
       if (operations.length) {
         const transactionIdentifier = new Types.TransactionIdentifier(
@@ -323,6 +330,7 @@ function getTransactionsFromEvents(allRecords, api) {
 const block = async (params) => {
   const { blockRequest } = params;
   const api = await getNetworkApiFromRequest(blockRequest);
+  const currency = getNetworkCurrencyFromRequest(blockRequest);
   const { index, hash } = blockRequest.block_identifier;
 
   // Get block hash if not set
@@ -389,6 +397,7 @@ const block = async (params) => {
     null,
     blockHash,
     paymentInfos,
+    currency,
   );
 
   // Get system events as this can also contain balance changing info (poa, reserved etc)
@@ -396,6 +405,7 @@ const block = async (params) => {
   const systemTransactions = getTransactionsFromEvents(
     allRecords.filter(({ phase }) => !phase.isApplyExtrinsic),
     api,
+    currency,
   );
 
   // Add fees to system transactions
@@ -437,6 +447,7 @@ const block = async (params) => {
 const blockTransaction = async (params) => {
   const { blockTransactionRequest } = params;
   const api = await getNetworkApiFromRequest(blockTransactionRequest);
+  const currency = getNetworkCurrencyFromRequest(blockTransactionRequest);
   const { index, hash } = blockTransactionRequest.block_identifier;
 
   // Get block hash if not set
@@ -461,6 +472,7 @@ const blockTransaction = async (params) => {
     (section, method, hash) => hash.toString() === txIdentifier.hash.toString(),
     blockHash,
     [],
+    currency,
   );
 
   return transactions[0] || {};

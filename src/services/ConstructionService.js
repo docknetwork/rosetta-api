@@ -31,9 +31,9 @@ import { publicKeyToAddress } from '../substrate/crypto';
 import {
   getNetworkApiFromRequest,
   getNetworkRegistryFromRequest,
+  getNetworkCurrencyFromRequest,
 } from '../substrate/connections';
 
-import dckCurrency from '../helpers/currency';
 import { buildTransferTxn, signTxn } from '../offline-signing';
 
 const Types = RosettaSDK.Client;
@@ -246,6 +246,7 @@ const constructionParse = async (params) => {
   console.log('constructionParseRequest', params);
   const { signed, transaction } = constructionParseRequest;
   const registry = getNetworkRegistryFromRequest(constructionParseRequest);
+  const currency = getNetworkCurrencyFromRequest(constructionParseRequest);
 
   let value;
   let sourceAccountAddress;
@@ -307,13 +308,13 @@ const constructionParse = async (params) => {
       operation_identifier: new Types.OperationIdentifier(0),
       type: 'Transfer',
       account: new Types.AccountIdentifier(sourceAccountAddress),
-      amount: new Types.Amount(new BN(value).neg().toString(), dckCurrency),
+      amount: new Types.Amount(new BN(value).neg().toString(), currency),
     }),
     Types.Operation.constructFromObject({
       operation_identifier: new Types.OperationIdentifier(1),
       type: 'Transfer',
       account: new Types.AccountIdentifier(destAccountAddress),
-      amount: new Types.Amount(value.toString(), dckCurrency),
+      amount: new Types.Amount(value.toString(), currency),
     }),
   ];
 

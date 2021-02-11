@@ -1,11 +1,14 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
+import RosettaSDK from 'rosetta-node-sdk';
+
 import networkIdentifiers from '../network';
 
 import { Registry } from '../offline-signing';
 
 const connections = {};
 const registries = {};
+const currencies = {};
 
 class SubstrateNetworkConnection {
   constructor({ nodeAddress, types }) {
@@ -28,6 +31,20 @@ class SubstrateNetworkConnection {
 
     return this.api;
   }
+}
+
+export function getNetworkCurrencyFromRequest(networkRequest) {
+  const targetNetworkIdentifier = networkRequest.network_identifier || networkIdentifiers[0];
+  const { blockchain, network } = targetNetworkIdentifier;
+  const networkIdentifier = getNetworkIdentifier(targetNetworkIdentifier);
+  if (networkIdentifier) {
+    const { nodeAddress, properties } = networkIdentifier;
+    if (!currencies[nodeAddress]) {
+      currencies[nodeAddress] = new RosettaSDK.Client.Currency(properties.tokenSymbol, properties.tokenDecimals);
+    }
+    return currencies[nodeAddress];
+  }
+  return null;
 }
 
 export function getNetworkIdentifier({ blockchain, network }) {
