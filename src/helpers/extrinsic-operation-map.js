@@ -1,4 +1,5 @@
 /*
+  This is a mapping of PolkadotJS/Substrate events to network operations  
   NOTE:
     This mapping is potentially incomplete. Not all chains will implement all balance changing events (bounties, poa),
     more should be added as they are found in Dock's case. Hopefully this can be expanded upon by others too.

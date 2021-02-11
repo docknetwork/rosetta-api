@@ -129,6 +129,7 @@ function processRecordToOp(
   const operationId = `${event.section}.${event.method}`.toLowerCase();
   const eventOpType = extrinsicOpMap[operationId];
   if (eventOpType) {
+    console.log('eventOpType', eventOpType)
     const params = event.typeDef.map(({ type }) => ({
       type: getTypeDef(type),
     }));
@@ -158,7 +159,7 @@ function processRecordToOp(
       currency,
     );
   } else {
-    // console.error(`unprocessed event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) `);
+    console.error(`unprocessed event:\n\t${event.section}:${event.method}:: (phase=${record.phase.toString()}) `);
   }
 }
 
@@ -183,24 +184,19 @@ function getTransactions(
       signer,
       hash,
     } = extrinsic;
-    const extrinsicAction = `${section}.${method}`.toLowerCase();
-    if (extrinsicAction === 'timestamp.set') {
+    const extrinsicMethod = `${section}.${method}`.toLowerCase();
+    if (extrinsicMethod === 'timestamp.set') {
       return;
     }
 
     const paymentInfo = paymentInfos[index];
-    const extrinsicMethod = `${section}.${method}`.toLowerCase();
-    const operationType = extrinsicOpMap[extrinsicMethod];
     const transactionIdentifier = new Types.TransactionIdentifier(
       hash.toHex().substr(2),
     );
     const operations = [];
 
     let paysFee = false;
-    if (
-      operationType
-      && (!shouldDisplay || shouldDisplay(section, method, hash))
-    ) {
+    if (!shouldDisplay || shouldDisplay(section, method, hash)) {
       const sourceAccountAddress = signer.toString();
 
       // Get extrinsic status/fee info
@@ -247,6 +243,7 @@ function getTransactions(
           ));
       } else {
         // When an extrinsic fails we cant rely on the events to parse its operations
+        const operationType = extrinsicOpMap[extrinsicMethod] || extrinsicMethod;
         const destAccountAddress = getEffectedAccountFromExtrinsic(
           api,
           extrinsic,
