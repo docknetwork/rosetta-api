@@ -26,13 +26,13 @@ import {
   throwError,
 } from '../helpers/error-types';
 
-import { publicKeyToAddress } from '../substrate/crypto';
+import { publicKeyToAddress } from '../helpers/crypto';
 
 import {
   getNetworkApiFromRequest,
   getNetworkRegistryFromRequest,
   getNetworkCurrencyFromRequest,
-} from '../substrate/connections';
+} from '../helpers/connections';
 
 import { buildTransferTxn, signTxn } from '../offline-signing';
 

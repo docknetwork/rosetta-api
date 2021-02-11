@@ -8,7 +8,7 @@ import {
   getNetworkIdentifier,
   getNetworkApiFromRequest,
   getNetworkCurrencyFromRequest,
-} from '../substrate/connections';
+} from '../helpers/connections';
 
 import extrinsicOpMap from '../helpers/extrinsic-operation-map';
 

@@ -4,7 +4,7 @@ import networkIdentifiers from '../network';
 import { errorTypes } from '../helpers/error-types';
 import {
   getNetworkApiFromRequest,
-} from '../substrate/connections';
+} from '../helpers/connections';
 
 const Types = RosettaSDK.Client;
 

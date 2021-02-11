@@ -5,7 +5,7 @@ import {
   getNetworkIdentifier,
   getNetworkApiFromRequest,
   getNetworkCurrencyFromRequest,
-} from '../substrate/connections';
+} from '../helpers/connections';
 
 const Types = RosettaSDK.Client;
 
