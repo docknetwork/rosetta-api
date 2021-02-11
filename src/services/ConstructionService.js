@@ -32,6 +32,7 @@ import {
   getNetworkApiFromRequest,
   getNetworkRegistryFromRequest,
   getNetworkCurrencyFromRequest,
+  getNetworkIdentifierFromRequest,
 } from '../helpers/connections';
 
 import { buildTransferTxn, signTxn } from '../offline-signing';
@@ -202,11 +203,10 @@ const constructionCombine = async (params) => {
  * */
 const constructionDerive = async (params) => {
   const { constructionDeriveRequest } = params;
-  // TODO: get network from identifier without connecting
-  // and get appropriate ss58Format value
+  const networkIdentifier = getNetworkIdentifierFromRequest(constructionDeriveRequest);
   const publicKeyHex = `0x${constructionDeriveRequest.public_key.hex_bytes}`;
   const publicKeyType = constructionDeriveRequest.public_key.curve_type;
-  const address = await publicKeyToAddress(publicKeyHex, publicKeyType);
+  const address = await publicKeyToAddress(publicKeyHex, publicKeyType, networkIdentifier.properties.ss58Format);
   return new Types.ConstructionDeriveResponse(address);
 };
 

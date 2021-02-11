@@ -58,17 +58,22 @@ export function getNetworkIdentifier({ blockchain, network }) {
   return null;
 }
 
-export async function getNetworkApiFromRequest(networkRequest) {
+export function getNetworkIdentifierFromRequest(networkRequest) {
   const targetNetworkIdentifier = networkRequest.network_identifier || networkIdentifiers[0];
   const { blockchain, network } = targetNetworkIdentifier;
   const networkIdentifier = getNetworkIdentifier(targetNetworkIdentifier);
   if (networkIdentifier) {
-    const { api } = await getNetworkConnection(networkIdentifier);
-    return api;
+    return networkIdentifier;
   }
   throw new Error(
     `Can't find network with blockchain and network of: ${blockchain}, ${network}`,
   );
+}
+
+export async function getNetworkApiFromRequest(networkRequest) {
+  const networkIdentifier = getNetworkIdentifierFromRequest(networkRequest);
+  const { api } = await getNetworkConnection(networkIdentifier);
+  return api;
 }
 
 export async function getNetworkConnection(networkIdentifier) {
