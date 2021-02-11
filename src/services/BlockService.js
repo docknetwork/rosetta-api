@@ -18,6 +18,9 @@ const OPERATION_STATUS_SUCCESS = 'SUCCESS';
 const OPERATION_STATUS_FAILURE = 'FAILURE';
 const OPERATION_STATUS_UNKNOWN = 'UNKNOWN';
 
+const EXTRINSIC_SUCCESS_EVENT = 'system:ExtrinsicSuccess';
+const EXTRINSIC_FAILED_EVENT = 'system:ExtrinsicFailed';
+
 async function getDefaultPayment() {
   return {
     partialFee: new BN('0'),
@@ -208,8 +211,8 @@ function getTransactions(
         .forEach((record) => {
           const { event } = record;
           const extrinsicAction = `${event.section}:${event.method}`;
-          const extrinsicSuccess = extrinsicAction === 'system:ExtrinsicSuccess'; // TODO: define in constant
-          const extrinsicFailed = extrinsicAction === 'system:ExtrinsicFailed'; // TODO: define in constant
+          const extrinsicSuccess = extrinsicAction === EXTRINSIC_SUCCESS_EVENT;
+          const extrinsicFailed = extrinsicAction === EXTRINSIC_FAILED_EVENT;
           if (extrinsicSuccess) {
             extrinsicStatus = OPERATION_STATUS_SUCCESS;
           } else if (extrinsicFailed) {
