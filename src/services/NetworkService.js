@@ -2,6 +2,7 @@ import RosettaSDK from 'rosetta-node-sdk';
 
 import networkIdentifiers from '../network';
 import { errorTypes } from '../helpers/error-types';
+import extrinsicOpMap from '../helpers/extrinsic-operation-map';
 import {
   getNetworkApiFromRequest,
 } from '../helpers/connections';
@@ -18,14 +19,8 @@ const operationStatuses = [
 ];
 
 // List of operation supported types
-const operationTypes = [
-  'Transfer',
-  'Create',
-  'Reserved',
-  'Endowed',
-  'EpochEnds',
-  'Fee',
-];
+const operationTypes = Object.keys(extrinsicOpMap)
+  .map(key => extrinsicOpMap[key]);
 
 /* Data API: Network */
 
@@ -55,9 +50,11 @@ const networkOptions = async (params) => {
     (error) => new Types.Error(error.code, error.message, error.retriable),
   );
 
+  // Filter duplicte op types
+  const opTypes = operationTypes.filter((item, index) => operationTypes.indexOf(item) === index);
   return new Types.NetworkOptionsResponse(
     new Types.Version(rosettaVersion, nodeVersion),
-    new Types.Allow(operationStatuses, operationTypes, errors),
+    new Types.Allow(operationStatuses, opTypes, errors),
   );
 };
 

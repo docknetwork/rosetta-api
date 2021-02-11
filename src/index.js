@@ -20,7 +20,7 @@ Server.register('/block/transaction', ServiceHandlers.Block.blockTransaction);
 
 /* Data API: Account */
 Server.register('/account/balance', ServiceHandlers.Account.balance);
-Server.register('/account/coins', ServiceHandlers.Account.coins);
+Server.register('/account/coins', ServiceHandlers.Dummy.dummy);
 
 /* Data API: Mempool */
 Server.register('/mempool', ServiceHandlers.Dummy.dummy);

@@ -20,7 +20,6 @@ class SubstrateNetworkConnection {
       return this.api;
     }
 
-    // TODO: max retry attempt and connection rejected error
     this.api = await ApiPromise.create({
       provider: new WsProvider(this.nodeAddress),
       types: this.types,
