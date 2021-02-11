@@ -1,5 +1,4 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
-import { cryptoWaitReady } from '@polkadot/util-crypto';
 import RosettaSDK from 'rosetta-node-sdk';
 
 import networkIdentifiers from '../network';
@@ -20,8 +19,6 @@ class SubstrateNetworkConnection {
     if (this.api && this.api.isConnected) {
       return this.api;
     }
-
-    await cryptoWaitReady();
 
     // TODO: max retry attempt and connection rejected error
     this.api = await ApiPromise.create({
