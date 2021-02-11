@@ -3,7 +3,6 @@ import { cryptoWaitReady } from '@polkadot/util-crypto';
 import networkIdentifiers from '../network';
 
 import { Registry } from '../offline-signing';
-import { metadataRpc as metadata } from '../offline-signing/devnode-metadata.json';
 
 const connections = {};
 const registries = {};
@@ -74,10 +73,11 @@ export function getNetworkRegistryFromRequest(networkRequest) {
   const networkIdentifier = getNetworkIdentifier(targetNetworkIdentifier);
   const { nodeAddress } = networkIdentifier;
   if (!registries[nodeAddress]) {
+  console.log('new reg metadata', networkIdentifier.types, networkIdentifier.metadataRpc)
     registries[nodeAddress] = new Registry({
       chainInfo: networkIdentifier,
       types: networkIdentifier.types,
-      metadata,
+      metadata: networkIdentifier.metadataRpc,
     });
   }
   return registries[nodeAddress];

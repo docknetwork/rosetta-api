@@ -1,4 +1,5 @@
 const types = require('../polkadot-types.json');
+const metadata = require('./metadata/testnet-metadata.json');
 
 module.exports = {
   blockchain: 'Substrate',
@@ -17,4 +18,5 @@ module.exports = {
   specVersion: 17,
   transactionVersion: 1,
   types,
+  metadataRpc: metadata.metadataRpc,
 };

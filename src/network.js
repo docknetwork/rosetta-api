@@ -41,8 +41,11 @@ fs.readdir(networksFolder, (error, files) => {
     console.error(error);
   } else {
     files.forEach(file => {
-      const data = require('.' + networksFolder + '/' + file);
-      networks.push(new SubstrateNetworkIdentifier(data));
+      // Ensure file has .js extension in it, for either .js or .json
+      if (file.indexOf('.js') > -1) {
+        const data = require('.' + networksFolder + '/' + file);
+        networks.push(new SubstrateNetworkIdentifier(data));
+      }
     });
   }
 });

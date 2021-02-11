@@ -30,7 +30,6 @@ export function buildTransferTxn({
   blockHash,
   registry,
 }) {
-  console.log('methods.balances.transfer', methods.balances.transfer);
   const unsignedTxn = methods.balances.transfer(
     {
       value,
