@@ -33,13 +33,15 @@ function getOperationAmountFromEvent(operationId, args, api) {
     || operationId === 'poamodule.txnfeesgiven'
   ) {
     return api.createType('Balance', args[2]);
-  } if (operationId === 'balances.reserved') {
+  } else if (operationId === 'balances.reserved') {
     return api.createType('Balance', args[1]);
-  } if (operationId === 'balances.endowed') {
+  } else if (operationId === 'balances.endowed') {
     return api.createType('Balance', args[1]);
-  } if (operationId === 'poamodule.epochends') {
+  } else if (operationId === 'poamodule.epochends') {
     // TODO: pull proper value from epoch data
     return api.createType('Balance', '9000000000'); // using 9000dck as epoch treasury rewards, this doesnt handle validator rewards atm
+  } else if (operationId === 'balances.balanceset') {
+    return '-100'; // TODO: for balance set we need the previous blocks balance for delta, this needs some thought to impl
   }
   return 0;
 }
@@ -127,6 +129,7 @@ function processRecordToOp(
   status,
   allRecords,
   currency,
+  networkIdentifier,
 ) {
   const { event } = record;
   const operationId = `${event.section}.${event.method}`.toLowerCase();
@@ -143,6 +146,7 @@ function processRecordToOp(
       operationId,
       args,
       api,
+      networkIdentifier,
     );
     const balanceAmount = getOperationAmountFromEvent(operationId, args, api);
     const sourceAccountAddress = getSourceAccountFromEvent(
@@ -174,6 +178,7 @@ function getTransactions(
   blockHash,
   paymentInfos,
   currency,
+  networkIdentifier,
 ) {
   const transactions = [];
   const fees = [];
@@ -243,6 +248,7 @@ function getTransactions(
             extrinsicStatus,
             allRecords,
             currency,
+            networkIdentifier,
           ));
       } else {
         // When an extrinsic fails we cant rely on the events to parse its operations
@@ -294,7 +300,7 @@ function getTransactions(
   };
 }
 
-function getTransactionsFromEvents(allRecords, api, currency) {
+function getTransactionsFromEvents(allRecords, api, currency, networkIdentifier) {
   const extrinsicStatus = OPERATION_STATUS_SUCCESS;
   return allRecords
     .map((record) => {
@@ -307,6 +313,7 @@ function getTransactionsFromEvents(allRecords, api, currency) {
         extrinsicStatus,
         allRecords,
         currency,
+        networkIdentifier,
       );
       if (operations.length) {
         const transactionIdentifier = new Types.TransactionIdentifier(
@@ -398,6 +405,7 @@ const block = async (params) => {
     blockHash,
     paymentInfos,
     currency,
+    // networkIdentifier,
   );
 
   // Get system events as this can also contain balance changing info (poa, reserved etc)
@@ -406,6 +414,7 @@ const block = async (params) => {
     allRecords.filter(({ phase }) => !phase.isApplyExtrinsic),
     api,
     currency,
+    // networkIdentifier,
   );
 
   // Add fees to system transactions
@@ -473,6 +482,7 @@ const blockTransaction = async (params) => {
     blockHash,
     [],
     currency,
+    // networkIdentifier,
   );
 
   return transactions[0] || {};
