@@ -322,7 +322,6 @@ function getTransactionsFromEvents(allRecords, api) {
  * */
 const block = async (params) => {
   const { blockRequest } = params;
-  console.log('blockRequest', blockRequest);
   const api = await getNetworkApiFromRequest(blockRequest);
   const { index, hash } = blockRequest.block_identifier;
 
@@ -437,7 +436,6 @@ const block = async (params) => {
  * */
 const blockTransaction = async (params) => {
   const { blockTransactionRequest } = params;
-  // console.log('blockTransactionRequest', params)
   const api = await getNetworkApiFromRequest(blockTransactionRequest);
   const { index, hash } = blockTransactionRequest.block_identifier;
 
