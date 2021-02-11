@@ -21,6 +21,7 @@ const Types = RosettaSDK.Client;
  * */
 const balance = async (params) => {
   const { accountBalanceRequest } = params;
+  console.log('accountBalanceRequest', accountBalanceRequest)
   const { address } = accountBalanceRequest.account_identifier;
   const { index, hash } = accountBalanceRequest.block_identifier || {
     index: null,

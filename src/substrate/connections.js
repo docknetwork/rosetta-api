@@ -73,7 +73,6 @@ export function getNetworkRegistryFromRequest(networkRequest) {
   const networkIdentifier = getNetworkIdentifier(targetNetworkIdentifier);
   const { nodeAddress } = networkIdentifier;
   if (!registries[nodeAddress]) {
-  console.log('new reg metadata', networkIdentifier.types, networkIdentifier.metadataRpc)
     registries[nodeAddress] = new Registry({
       chainInfo: networkIdentifier,
       types: networkIdentifier.types,

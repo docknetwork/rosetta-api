@@ -18,7 +18,7 @@ class SubstrateNetworkIdentifier extends RosettaSDK.Client.NetworkIdentifier {
     specVersion,
     transactionVersion,
     types = {},
-    metadata,
+    metadataRpc,
   }) {
     super(blockchain, network);
     this.nodeAddress = nodeAddress;
@@ -30,7 +30,7 @@ class SubstrateNetworkIdentifier extends RosettaSDK.Client.NetworkIdentifier {
     this.specVersion = specVersion;
     this.transactionVersion = transactionVersion;
     this.types = types;
-    this.metadata = metadata;
+    this.metadataRpc = metadataRpc;
   }
 }
 

@@ -35,7 +35,6 @@ import {
 
 import dckCurrency from '../helpers/currency';
 import { buildTransferTxn, signTxn } from '../offline-signing';
-import { metadataRpc as metadata } from '../offline-signing/devnode-metadata.json';
 
 const Types = RosettaSDK.Client;
 
@@ -118,7 +117,7 @@ const constructionSubmit = async (params) => {
   }
 
   const { extrinsic } = jsonToTx(constructionSubmitRequest.signed_transaction, {
-    metadataRpc: metadata,
+    metadataRpc: registry.metadata,
     registry,
   });
 
@@ -161,12 +160,12 @@ const constructionCombine = async (params) => {
 
   // Re-construct extrinsic
   const { transaction, extrinsic } = jsonToTx(unsigned_transaction, {
-    metadataRpc: metadata,
+    metadataRpc: registry.metadata,
     registry,
   });
   const unsignedTxn = transaction;
   const txInfo = decode(unsignedTxn, {
-    metadataRpc: metadata,
+    metadataRpc: registry.metadata,
     registry: registry.registry,
   });
 
@@ -223,9 +222,8 @@ const constructionHash = async (params) => {
   const { constructionHashRequest } = params;
   console.log('constructionHash', params);
   const registry = getNetworkRegistryFromRequest(constructionHashRequest);
-
   const { extrinsic } = jsonToTx(constructionHashRequest.signed_transaction, {
-    metadataRpc: metadata,
+    metadataRpc: registry.metadata,
     registry,
   });
 
@@ -272,7 +270,7 @@ const constructionParse = async (params) => {
     const parsedTx = jsonToTx(
       transaction,
       {
-        metadataRpc: metadata,
+        metadataRpc: registry.metadata,
         registry,
       },
       signed,
@@ -280,7 +278,7 @@ const constructionParse = async (params) => {
 
     const parsedTxn = parsedTx.transaction;
     const txInfo = decode(parsedTxn, {
-      metadataRpc: metadata,
+      metadataRpc: registry.metadata,
       registry: registry.registry,
     });
     const { args } = txInfo.method;
