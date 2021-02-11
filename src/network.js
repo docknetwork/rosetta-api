@@ -10,11 +10,27 @@ class SubstrateNetworkIdentifier extends RosettaSDK.Client.NetworkIdentifier {
     blockchain,
     network,
     nodeAddress,
+    ss58Format,
+    properties = {},
+    genesis,
+    name,
+    specName,
+    specVersion,
+    transactionVersion,
     types = {},
+    metadata,
   }) {
     super(blockchain, network);
     this.nodeAddress = nodeAddress;
+    this.ss58Format = ss58Format;
+    this.properties = properties;
+    this.genesis = genesis;
+    this.name = name;
+    this.specName = specName;
+    this.specVersion = specVersion;
+    this.transactionVersion = transactionVersion;
     this.types = types;
+    this.metadata = metadata;
   }
 }
 

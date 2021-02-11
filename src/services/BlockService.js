@@ -163,7 +163,7 @@ function getTransactions(
   currentBlock,
   allRecords,
   api,
-  shouldDisplay = null,
+  shouldDisplay,
   blockHash,
   paymentInfos,
 ) {

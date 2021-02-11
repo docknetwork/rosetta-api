@@ -28,7 +28,6 @@ const balance = async (params) => {
   };
   const api = await getNetworkApiFromRequest(accountBalanceRequest);
 
-  // TODO: put this in a method so we can reuse with blockservice
   // Get block hash if not set
   let blockHash = hash;
   let blockIndex = index;

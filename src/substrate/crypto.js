@@ -2,16 +2,6 @@ import { cryptoWaitReady, encodeAddress } from '@polkadot/util-crypto';
 import { Keyring } from '@polkadot/keyring';
 
 // TODO: define ss58 format properly, elsewhere
-// switch (network) {
-//   case 'dev':
-//     return encodeAddress(addr, 42);
-//   case 'test':
-//     return encodeAddress(addr, 21);
-//   case 'main':
-//     return encodeAddress(addr, 22);
-//   default:
-//     throw new Error(`Network can be either test or main or dev but was passed as ${network}`);
-// }
 const ss58Format = 42;
 
 const curveToTypeMap = {
