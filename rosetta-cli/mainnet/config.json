@@ -1,55 +1,55 @@
 {
- "network": {
-  "blockchain": "Substrate",
-  "network": "Dock Mainnet"
- },
- "online_url": "http://localhost:8080",
- "data_directory": "./substrate",
- "http_timeout": 5000,
- "max_retries": 10,
- "retry_elapsed_time": 600,
- "max_online_connections": 0,
- "max_sync_concurrency": 0,
- "tip_delay": 100,
- "max_reorg_depth": 100,
- "log_configuration": false,
+  "network":{
+    "blockchain":"Substrate",
+    "network":"Dock Mainnet"
+  },
+  "online_url":"http://localhost:8080",
+  "data_directory":"./substrate",
+  "http_timeout":5000,
+  "max_retries":10,
+  "retry_elapsed_time":600,
+  "max_online_connections":0,
+  "max_sync_concurrency":32,
+  "tip_delay":100,
+  "max_reorg_depth":100,
+  "log_configuration":false,
   "compression_disabled":true,
   "memory_limit_disabled":true,
-  "construction": {
-    "clear_broadcasts": false,
-    "ignore_broadcast_failures": false,
-    "broadcast_behind_tip": false,
-    "rebroadcast_all": false,
-    "stale_depth": 64,
-    "broadcast_limit": 1,
-    "block_broadcast_limit": 1,
-    "rebroadcast_all": false,
-    "constructor_dsl_file": "substrate.ros",
-    "end_conditions": {
-      "create_account": 2,
-      "transfer": 1
+  "construction":{
+    "clear_broadcasts":false,
+    "ignore_broadcast_failures":false,
+    "broadcast_behind_tip":false,
+    "rebroadcast_all":false,
+    "stale_depth":64,
+    "broadcast_limit":1,
+    "block_broadcast_limit":1,
+    "rebroadcast_all":false,
+    "constructor_dsl_file":"./substrate.ros",
+    "end_conditions":{
+      "create_account":2,
+      "transfer":1
     }
   },
- "data": {
-  "log_blocks": false,
-  "log_transactions": false,
-  "log_balance_changes": false,
-  "log_reconciliations": false,
-  "ignore_reconciliation_error": false,
-  "exempt_accounts": "./exempt_accounts.json",
-  "historical_balance_enabled": true,
-  "bootstrap_balances": "./bootstrap_balances.json",
-  "interesting_accounts": "",
-  "reconciliation_disabled": false,
-  "reconciliation_drain_disabled": false,
-  "inactive_discrepency_search_disabled": false,
-  "balance_tracking_disabled": false,
-  "coin_tracking_disabled": true,
-  "results_output_file": "",
-  "pruning_disabled": false,
-  "initial_balance_fetch_disabled": false,
-  "end_conditions": {
-    "tip": true
+  "data":{
+    "log_blocks":false,
+    "log_transactions":false,
+    "log_balance_changes":false,
+    "log_reconciliations":false,
+    "ignore_reconciliation_error":false,
+    "exempt_accounts":"./mainnet/exempt_accounts.json",
+    "bootstrap_balances":"./bootstrap_balances.json",
+    "historical_balance_enabled":true,
+    "interesting_accounts":"",
+    "reconciliation_disabled":false,
+    "reconciliation_drain_disabled":false,
+    "inactive_discrepency_search_disabled":false,
+    "balance_tracking_disabled":false,
+    "coin_tracking_disabled":true,
+    "results_output_file":"",
+    "pruning_disabled":false,
+    "initial_balance_fetch_disabled":false,
+    "end_conditions":{
+      "tip":true
+    }
   }
- }
 }

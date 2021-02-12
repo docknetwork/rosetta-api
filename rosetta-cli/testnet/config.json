@@ -1,7 +1,7 @@
 {
   "network":{
     "blockchain":"Substrate",
-    "network":"Development Node"
+    "network":"Dock Testnet"
   },
   "online_url":"http://localhost:8080",
   "data_directory":"./substrate",
@@ -36,7 +36,7 @@
     "log_balance_changes":false,
     "log_reconciliations":false,
     "ignore_reconciliation_error":false,
-    "exempt_accounts":"./devnode/exempt_accounts.json",
+    "exempt_accounts":"./mainnet/exempt_accounts.json",
     "bootstrap_balances":"./bootstrap_balances.json",
     "historical_balance_enabled":true,
     "interesting_accounts":"",

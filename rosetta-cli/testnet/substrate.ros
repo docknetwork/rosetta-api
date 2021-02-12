@@ -1,0 +1,93 @@
+request_funds(1){
+  find_account{
+    currency = {"symbol":"DCK", "decimals":6};
+    random_account = find_balance({
+      "minimum_balance":{
+        "value": "0",
+        "currency": {{currency}}
+      },
+      "create_limit":1
+    });
+  },
+
+  // Create a separate scenario to request funds so that
+  // the address we are using to request funds does not
+  // get rolled back if funds do not yet exist.
+  request{
+    loaded_account = find_balance({
+      "account_identifier": {{random_account.account_identifier}},
+      "minimum_balance":{
+        "value": "10000",
+        "currency": {{currency}}
+      }
+    });
+  }
+}
+
+create_account(1){
+  create{
+    network = {"network":"Dock Testnet", "blockchain":"Substrate"};
+    key = generate_key({"curve_type": "edwards25519"});
+    account = derive({
+      "network_identifier": {{network}},
+      "public_key": {{key.public_key}}
+    });
+
+    // If the account is not saved, the key will be lost!
+    save_account({
+      "account_identifier": {{account.account_identifier}},
+      "keypair": {{key}}
+    });
+  }
+}
+
+transfer(1){
+  transfer{
+    transfer.network = {"network":"Dock Testnet", "blockchain":"Substrate"};
+    currency = {"symbol":"DCK", "decimals":6};
+    sender = find_balance({
+      "minimum_balance":{
+        "value": "10000",
+        "currency": {{currency}}
+      }
+    });
+
+    recipient_amount = random_number({"minimum": "999", "maximum": "1000"});
+    print_message({"recipient_amount":{{recipient_amount}}});
+
+    // Find recipient and construct operations
+    sender_amount = 0 - {{recipient_amount}};
+    recipient = find_balance({
+      "not_account_identifier":[{{sender.account_identifier}}],
+      "minimum_balance":{
+        "value": "0",
+        "currency": {{currency}}
+      },
+      "create_limit": 100,
+      "create_probability": 50
+    });
+    transfer.confirmation_depth = "16";
+    transfer.operations = [
+      {
+        "operation_identifier":{"index":0},
+        "type":"Transfer",
+        "status":"SUCCESS",
+        "account":{{sender.account_identifier}},
+        "amount":{
+          "value":{{sender_amount}},
+          "currency":{{currency}}
+        }
+      },
+      {
+        "operation_identifier":{"index":1},
+        "type":"Transfer",
+        "status":"SUCCESS",
+        "account":{{recipient.account_identifier}},
+        "amount":{
+          "value":{{recipient_amount}},
+          "currency":{{currency}}
+        }
+      }
+    ];
+  }
+}

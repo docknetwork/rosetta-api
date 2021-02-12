@@ -20,6 +20,6 @@ module.exports = {
   types,
   metadataRpc: metadata.metadataRpc,
   poaModule: {
-    tresury: '5EYCAe5d818kja8P5YikNggRz4KxztMtMhxP6qSTw7Bwahwq', // TODO: set to real address
+    tresury: '3EnzzoFZSBeDcQ36xu8GpfMw4MU5uDmUatskoAaSg1JBxQPb',
   },
 };
