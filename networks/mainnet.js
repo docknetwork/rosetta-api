@@ -10,6 +10,9 @@ module.exports = {
     ss58Format: 22,
     tokenDecimals: 6,
     tokenSymbol: 'DCK',
+    poaModule: {
+      treasury: '3EnzzoFZSBeDcQ36xu8GpfMw4MU5uDmUatskoAaSg1JBxQPb',
+    },
   },
   genesis: '0xf73467c6544aa68df2ee546b135f955c46b90fa627e9b5d7935f41061bb8a5a9',
   name: 'Dock Mainnet',
@@ -19,7 +22,4 @@ module.exports = {
   transactionVersion: 1,
   types,
   metadataRpc: metadata.metadataRpc,
-  poaModule: {
-    tresury: '3EnzzoFZSBeDcQ36xu8GpfMw4MU5uDmUatskoAaSg1JBxQPb',
-  },
 };

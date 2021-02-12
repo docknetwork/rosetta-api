@@ -8,6 +8,7 @@ import {
   getNetworkIdentifier,
   getNetworkApiFromRequest,
   getNetworkCurrencyFromRequest,
+  getNetworkIdentifierFromRequest,
 } from '../helpers/connections';
 
 import extrinsicOpMap from '../helpers/extrinsic-operation-map';
@@ -38,22 +39,26 @@ function getOperationAmountFromEvent(operationId, args, api) {
   } else if (operationId === 'balances.endowed') {
     return api.createType('Balance', args[1]);
   } else if (operationId === 'poamodule.epochends') {
+    // mainnet blocks to check:
+    // https://fe.dock.io/?rpc=wss%3A%2F%2Fmainnet-node.dock.io#/explorer/query/3137682
+    // https://fe.dock.io/?rpc=wss%3A%2F%2Fmainnet-node.dock.io#/explorer/query/3137682
     // TODO: pull proper value from epoch data
-    return api.createType('Balance', '9000000000'); // using 9000dck as epoch treasury rewards, this doesnt handle validator rewards atm
+    // return api.createType('Balance', '9000000000'); // using 9000dck as epoch treasury rewards, this doesnt handle validator rewards atm
+    return api.createType('Balance', '0'); // using 9000dck as epoch treasury rewards, this doesnt handle validator rewards atm
   } else if (operationId === 'balances.balanceset') {
     return '-100'; // TODO: for balance set we need the previous blocks balance for delta, this needs some thought to impl
   }
   return 0;
 }
 
-function getEffectedAccountFromEvent(operationId, args, api) {
+function getEffectedAccountFromEvent(operationId, args, api, networkIdentifier) {
   if (
     operationId === 'poamodule.txnfeesgiven'
     || operationId === 'balances.transfer'
   ) {
     return args[1];
   } if (operationId === 'poamodule.epochends') {
-    return '5EYCAe5d818kja8P5YikNggRz4KxztMtMhxP6qSTw7Bwahwq'; // treasury, TODO: get from chain or network info?
+    return networkIdentifier.properties.poaModule && networkIdentifier.properties.poaModule.treasury;
   }
   return args[0];
 }
@@ -338,6 +343,7 @@ const block = async (params) => {
   const { blockRequest } = params;
   const api = await getNetworkApiFromRequest(blockRequest);
   const currency = getNetworkCurrencyFromRequest(blockRequest);
+  const networkIdentifier = getNetworkIdentifierFromRequest(blockRequest);
   const { index, hash } = blockRequest.block_identifier;
 
   // Get block hash if not set
@@ -405,7 +411,7 @@ const block = async (params) => {
     blockHash,
     paymentInfos,
     currency,
-    // networkIdentifier,
+    networkIdentifier,
   );
 
   // Get system events as this can also contain balance changing info (poa, reserved etc)
@@ -414,7 +420,7 @@ const block = async (params) => {
     allRecords.filter(({ phase }) => !phase.isApplyExtrinsic),
     api,
     currency,
-    // networkIdentifier,
+    networkIdentifier,
   );
 
   // Add fees to system transactions
@@ -457,6 +463,7 @@ const blockTransaction = async (params) => {
   const { blockTransactionRequest } = params;
   const api = await getNetworkApiFromRequest(blockTransactionRequest);
   const currency = getNetworkCurrencyFromRequest(blockTransactionRequest);
+  const networkIdentifier = getNetworkIdentifierFromRequest(blockRequest);
   const { index, hash } = blockTransactionRequest.block_identifier;
 
   // Get block hash if not set
@@ -482,7 +489,7 @@ const blockTransaction = async (params) => {
     blockHash,
     [],
     currency,
-    // networkIdentifier,
+    networkIdentifier,
   );
 
   return transactions[0] || {};

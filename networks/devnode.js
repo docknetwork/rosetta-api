@@ -10,6 +10,9 @@ module.exports = {
     ss58Format: 42,
     tokenDecimals: 6,
     tokenSymbol: 'DCK',
+    poaModule: {
+      treasury: '5EYCAe5d818kja8P5YikNggRz4KxztMtMhxP6qSTw7Bwahwq',
+    },
   },
   genesis: '0xbae7b59e8d0ef61db70861f49f31e0c6145cb8c33836e2ea2fb4390996cdb174',
   name: 'Development',
@@ -19,7 +22,4 @@ module.exports = {
   transactionVersion: 1,
   types,
   metadataRpc: metadata.metadataRpc,
-  poaModule: {
-    tresury: '5EYCAe5d818kja8P5YikNggRz4KxztMtMhxP6qSTw7Bwahwq',
-  },
 };
