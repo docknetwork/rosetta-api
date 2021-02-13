@@ -8,6 +8,7 @@ import { Registry } from '../offline-signing';
 const connections = {};
 const registries = {};
 const currencies = {};
+const isOffline = process.argv.indexOf('--offline') > -1;
 
 class SubstrateNetworkConnection {
   constructor({ nodeAddress, types }) {
@@ -76,6 +77,10 @@ export async function getNetworkApiFromRequest(networkRequest) {
 }
 
 export async function getNetworkConnection(networkIdentifier) {
+  if (isOffline) {
+    throw new Error(`Server is in offline mode`);
+  }
+
   const { nodeAddress } = networkIdentifier;
   if (!connections[nodeAddress]) {
     const connection = new SubstrateNetworkConnection(networkIdentifier);

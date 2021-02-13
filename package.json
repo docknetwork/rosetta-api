@@ -6,6 +6,8 @@
   "scripts": {
     "build": "rimraf dist/ && babel src --out-dir dist --copy-files",
     "start": "npm run build && node dist/index.js",
+    "start-offline": "npm run build && node dist/index.js --offline",
+    "dev-offline": "nodemon --offline",
     "dev": "nodemon",
     "test": "jest --coverage ",
     "eslint": "eslint src"
