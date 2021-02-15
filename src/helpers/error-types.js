@@ -9,6 +9,7 @@ export const ERROR_PARSE_INTERMEDIATE_RESULT = 5;
 export const ERROR_SIGNATURE_INVALID = 6;
 export const ERROR_BROADCAST_TRANSACTION = 7;
 export const ERROR_INVALID_ADDRESS = 8;
+export const ERROR_TX_INVALID = 9;
 
 export const errorTypes = [
   {
@@ -54,6 +55,11 @@ export const errorTypes = [
   {
     code: 8,
     message: 'Invalid address',
+    retriable: false,
+  },
+  {
+    code: 9,
+    message: 'Transaction invalid',
     retriable: false,
   },
 ];

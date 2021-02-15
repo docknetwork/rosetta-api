@@ -1,4 +1,12 @@
-// TODO: maybe remove this file, determine if mempool is required
+import RosettaSDK from 'rosetta-node-sdk';
+
+import {
+  ERROR_TX_INVALID,
+  throwError,
+} from '../helpers/error-types';
+
+const Types = RosettaSDK.Client;
+
 /* Data API: Mempool */
 
 /**
@@ -10,8 +18,8 @@
  * */
 const mempool = async (params) => {
   const { mempoolRequest } = params;
-  console.log('mempoolRequest', mempoolRequest);
-  return {};
+  // No mempool transactions for substrate, assumes block time is within few seconds
+  return Types.MempoolResponse([]);
 };
 
 /**
@@ -23,8 +31,7 @@ const mempool = async (params) => {
  * */
 const mempoolTransaction = async (params) => {
   const { mempoolTransactionRequest } = params;
-  console.log('mempoolTransactionRequest', mempoolTransactionRequest);
-  return {};
+  throwError(ERROR_TX_INVALID);
 };
 
 module.exports = {

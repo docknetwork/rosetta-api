@@ -23,8 +23,8 @@ Server.register('/account/balance', ServiceHandlers.Account.balance);
 Server.register('/account/coins', ServiceHandlers.Dummy.dummy);
 
 /* Data API: Mempool */
-Server.register('/mempool', ServiceHandlers.Dummy.dummy);
-Server.register('/mempool/transaction', ServiceHandlers.Dummy.dummy);
+Server.register('/mempool', ServiceHandlers.Mempool.mempool);
+Server.register('/mempool/transaction', ServiceHandlers.Mempool.mempoolTransaction);
 
 /* Construction API */
 Server.register(
