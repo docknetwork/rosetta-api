@@ -31,7 +31,12 @@ const operationTypes = Object.keys(extrinsicOpMap)
  * metadataRequest MetadataRequest
  * returns NetworkListResponse
  * */
-const networkList = async () => new Types.NetworkListResponse(networkIdentifiers);
+const networkList = async () => new Types.NetworkListResponse(networkIdentifiers.map(({blockchain, network}) => {
+  return {
+    blockchain,
+    network,
+  };
+}));
 
 /**
  * Get Network Options
