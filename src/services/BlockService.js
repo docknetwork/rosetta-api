@@ -22,6 +22,8 @@ const OPERATION_STATUS_UNKNOWN = 'UNKNOWN';
 const EXTRINSIC_SUCCESS_EVENT = 'system:ExtrinsicSuccess';
 const EXTRINSIC_FAILED_EVENT = 'system:ExtrinsicFailed';
 
+const epochDetailsCache = {};
+
 async function getDefaultPayment() {
   return {
     partialFee: new BN('0'),
@@ -40,7 +42,12 @@ async function getOperationAmountFromEvent(operationId, args, api) {
     return api.createType('Balance', args[1]);
   } else if (operationId === 'poamodule.epochends') {
     const epochNo = args[0];
-    const epochDetails = await api.query.poAModule.epochs(epochNo);
+    const epochId = epochNo.toString();
+    let epochDetails = epochDetailsCache[epochId];
+    if (!epochDetails) {
+      epochDetailsCache[epochId] = epochDetails = await api.query.poAModule.epochs(epochNo);
+    }
+
     // mainnet blocks to check:
     // https://fe.dock.io/?rpc=wss%3A%2F%2Fmainnet-node.dock.io#/explorer/query/3137682
     return api.createType('Balance', epochDetails.emission_for_treasury.toString());
