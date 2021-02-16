@@ -24,6 +24,7 @@ const Block = require('./BlockService');
 const Account = require('./AccountService');
 const Construction = require('./ConstructionService');
 const Mempool = require('./MempoolService');
+const Call = require('./CallService');
 const Dummy = require('./DummyService');
 
 module.exports = {
@@ -32,5 +33,6 @@ module.exports = {
   Account,
   Construction,
   Mempool,
+  Call,
   Dummy,
 };

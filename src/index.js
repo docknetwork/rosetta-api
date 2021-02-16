@@ -7,7 +7,7 @@ const Server = new RosettaSDK.Server({
 });
 
 /* Data API: Network specific procedure call */
-Server.register('/call', ServiceHandlers.Dummy.dummy);
+Server.register('/call', ServiceHandlers.Call.call);
 
 /* Data API: Network */
 Server.register('/network/list', ServiceHandlers.Network.networkList);
