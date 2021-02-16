@@ -40,14 +40,10 @@ async function getOperationAmountFromEvent(operationId, args, api) {
     return api.createType('Balance', args[1]);
   } else if (operationId === 'poamodule.epochends') {
     const epochNo = args[0];
-    console.log('epochNo', epochNo)
-
+    const epochDetails = await api.query.poAModule.epochs(epochNo);
     // mainnet blocks to check:
     // https://fe.dock.io/?rpc=wss%3A%2F%2Fmainnet-node.dock.io#/explorer/query/3137682
-    // https://fe.dock.io/?rpc=wss%3A%2F%2Fmainnet-node.dock.io#/explorer/query/3137682
-    // TODO: pull proper value from epoch data
-    // return api.createType('Balance', '9000000000'); // using 9000dck as epoch treasury rewards, this doesnt handle validator rewards atm
-    return api.createType('Balance', '0'); // using 9000dck as epoch treasury rewards, this doesnt handle validator rewards atm
+    return api.createType('Balance', epochDetails.emission_for_treasury.toString());
   } else if (operationId === 'balances.balanceset') {
     return '-100'; // TODO: for balance set we need the previous blocks balance for delta, this needs some thought to impl
   }
