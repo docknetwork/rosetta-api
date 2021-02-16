@@ -7,6 +7,11 @@ import {
   getNetworkCurrencyFromRequest,
 } from '../helpers/connections';
 
+import {
+  ERROR_NOT_IMPLEMENTED,
+  throwError,
+} from '../helpers/error-types';
+
 const Types = RosettaSDK.Client;
 
 /* Data API: Account */
@@ -20,7 +25,6 @@ const Types = RosettaSDK.Client;
  * */
 const balance = async (params) => {
   const { accountBalanceRequest } = params;
-  console.log('accountBalanceRequest', accountBalanceRequest)
   const { address } = accountBalanceRequest.account_identifier;
   const { index, hash } = accountBalanceRequest.block_identifier || {
     index: null,
@@ -59,7 +63,7 @@ const balance = async (params) => {
 };
 
 const coins = async (params) => {
-  return {};
+  throwError(ERROR_NOT_IMPLEMENTED);
 };
 
 module.exports = {
