@@ -28,7 +28,7 @@ async function getDefaultPayment() {
   };
 }
 
-function getOperationAmountFromEvent(operationId, args, api) {
+async function getOperationAmountFromEvent(operationId, args, api) {
   if (
     operationId === 'balances.transfer'
     || operationId === 'poamodule.txnfeesgiven'
@@ -39,6 +39,9 @@ function getOperationAmountFromEvent(operationId, args, api) {
   } else if (operationId === 'balances.endowed') {
     return api.createType('Balance', args[1]);
   } else if (operationId === 'poamodule.epochends') {
+    const epochNo = args[0];
+    console.log('epochNo', epochNo)
+
     // mainnet blocks to check:
     // https://fe.dock.io/?rpc=wss%3A%2F%2Fmainnet-node.dock.io#/explorer/query/3137682
     // https://fe.dock.io/?rpc=wss%3A%2F%2Fmainnet-node.dock.io#/explorer/query/3137682
@@ -126,7 +129,7 @@ function addToOperations(
   );
 }
 
-function processRecordToOp(
+async function processRecordToOp(
   api,
   record,
   operations,
@@ -140,7 +143,6 @@ function processRecordToOp(
   const operationId = `${event.section}.${event.method}`.toLowerCase();
   const eventOpType = extrinsicOpMap[operationId];
   if (eventOpType) {
-    console.log('eventOpType', eventOpType)
     const params = event.typeDef.map(({ type }) => ({
       type: getTypeDef(type),
     }));
@@ -153,7 +155,7 @@ function processRecordToOp(
       api,
       networkIdentifier,
     );
-    const balanceAmount = getOperationAmountFromEvent(operationId, args, api);
+    const balanceAmount = await getOperationAmountFromEvent(operationId, args, api);
     const sourceAccountAddress = getSourceAccountFromEvent(
       operationId,
       args,
@@ -175,7 +177,7 @@ function processRecordToOp(
   }
 }
 
-function getTransactions(
+async function getTransactions(
   currentBlock,
   allRecords,
   api,
@@ -191,7 +193,7 @@ function getTransactions(
   // map between the extrinsics and events
   const extrinsicCount = currentBlock.block.extrinsics.length;
   const { extrinsics } = currentBlock.block;
-  extrinsics.forEach((extrinsic, index) => {
+  const promises = extrinsics.map(async (extrinsic, index) => {
     const {
       method: { method, section, args },
       signer,
@@ -241,11 +243,11 @@ function getTransactions(
 
       // Parse events
       if (extrinsicStatus === OPERATION_STATUS_SUCCESS) {
-        allRecords
+        await Promise.all(allRecords
           .filter(
             ({ phase }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(index),
           )
-          .forEach((record, index) => processRecordToOp(
+          .map(async (record, index) => processRecordToOp(
             api,
             record,
             operations,
@@ -254,9 +256,8 @@ function getTransactions(
             allRecords,
             currency,
             networkIdentifier,
-          ));
-      } else {
-        // When an extrinsic fails we cant rely on the events to parse its operations
+          )));
+      } else { // When an extrinsic fails we cant rely on the events to parse its operations
         const operationType = extrinsicOpMap[extrinsicMethod] || extrinsicMethod;
         const destAccountAddress = getEffectedAccountFromExtrinsic(
           api,
@@ -299,18 +300,20 @@ function getTransactions(
     }
   });
 
+  await Promise.all(promises);
+
   return {
     transactions,
     fees,
   };
 }
 
-function getTransactionsFromEvents(allRecords, api, currency, networkIdentifier) {
+async function getTransactionsFromEvents(allRecords, api, currency, networkIdentifier) {
   const extrinsicStatus = OPERATION_STATUS_SUCCESS;
-  return allRecords
-    .map((record) => {
+  return (await Promise.all(
+    allRecords.map(async (record) => {
       const operations = [];
-      processRecordToOp(
+      await processRecordToOp(
         api,
         record,
         operations,
@@ -326,7 +329,7 @@ function getTransactionsFromEvents(allRecords, api, currency, networkIdentifier)
         );
         return new Types.Transaction(transactionIdentifier, operations);
       }
-    })
+    })))
     .filter((event) => event !== undefined);
 }
 
@@ -403,7 +406,7 @@ const block = async (params) => {
 
   const paymentInfos = await Promise.all(paymentInfoPromises);
   const allRecords = await api.query.system.events.at(blockHash);
-  const { transactions, fees } = getTransactions(
+  const { transactions, fees } = await getTransactions(
     currentBlock,
     allRecords,
     api,
@@ -416,7 +419,7 @@ const block = async (params) => {
 
   // Get system events as this can also contain balance changing info (poa, reserved etc)
   // HACK: setting txHash to blockHash for system events, since they arent related to extrinsic hashes
-  const systemTransactions = getTransactionsFromEvents(
+  const systemTransactions = await getTransactionsFromEvents(
     allRecords.filter(({ phase }) => !phase.isApplyExtrinsic),
     api,
     currency,
@@ -481,7 +484,7 @@ const blockTransaction = async (params) => {
 
   const txIdentifier = blockTransactionRequest.transaction_identifier;
   const allRecords = await api.query.system.events.at(blockHash);
-  const { transactions, fees } = getTransactions(
+  const { transactions, fees } = await getTransactions(
     currentBlock,
     allRecords,
     api,
