@@ -1,12 +1,1 @@
-[
-  {
-    "account_identifier": {
-      "address":"TODO"
-    },
-    "currency":{
-      "symbol":"DCK",
-      "decimals":6
-    },
-    "value": "1"
-  }
-]
+[]
