@@ -64,7 +64,7 @@ export const errorTypes = [
   },
 ];
 
-export function throwError(type) {
+export function throwError(type, description) {
   const error = errorTypes[type];
-  throw new RosettaSDK.Client.Error(error.code, error.message, error.retriable);
+  throw new RosettaSDK.Client.Error(error.code, error.message, error.retriable, description);
 }

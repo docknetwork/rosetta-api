@@ -123,9 +123,9 @@ const constructionSubmit = async (params) => {
   });
 
   try {
-    const txHashtest = await api.rpc.author.submitExtrinsic(extrinsic.toHex());
+    const txHash = await api.rpc.author.submitExtrinsic(extrinsic.toHex());
     return new Types.TransactionIdentifierResponse({
-      hash: u8aToHex(txHashtest).substr(2),
+      hash: u8aToHex(txHash).substr(2),
     });
   } catch (e) {
     return throwError(ERROR_BROADCAST_TRANSACTION, e);

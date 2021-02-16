@@ -10,6 +10,16 @@ import {
   getNetworkApiFromRequest,
 } from '../helpers/connections';
 
+import {
+  hexToU8a,
+} from '@polkadot/util';
+
+import {
+  methods,
+} from '@substrate/txwrapper';
+
+import { buildTxn, signTxn } from '../offline-signing';
+
 const Types = RosettaSDK.Client;
 
 /* Data API: Call */
@@ -25,11 +35,13 @@ const call = async (params) => {
   const { callRequest } = params;
   const { method, parameters } = callRequest;
   const api = await getNetworkApiFromRequest(callRequest);
-
-  // Get method function from string
   const methodSplit = method.split('.');
   const methodType = methodSplit[0];
-  let methodFn = api[methodType];
+  const isQuery = methodType === 'query';
+  const isTransaction = methodType === 'tx';
+
+  // Get method function from string
+  let methodFn = isTransaction ? methods : api[methodType];
   for (let i = 1; i < methodSplit.length; i++) {
     methodFn = methodFn[methodSplit[i]];
   }
@@ -37,17 +49,40 @@ const call = async (params) => {
   if (!methodFn) {
     throwError(ERROR_PARSE_INTENT);
   }
+  const {
+    signature,
+    signer,
+    from,
+    blockHash,
+    signingPayload,
+    args = []
+  } = parameters;
 
-  const isQuery = methodType === 'query';
-  const { blockHash, args = [] } = parameters;
-
+  // Try to execute the extrinsic or query
   try {
-    const extrinsic = (blockHash && isQuery) ? methodFn.at(blockHash, ...args) : methodFn(...args);
-    if (isQuery) {
+    const extrinsic = (blockHash && isQuery) ? methodFn.at(blockHash) : methodFn(...args);
+    const isPromise = typeof extrinsic.then === 'function';
+    if (isQuery || isPromise) {
       const result = (await extrinsic).toJSON();
       return {
         result,
         idempotent: isQuery,
+      };
+    } else {
+      // Check if signature, if so, add it
+      if (signature && signer) {
+        extrinsic.addSignature(
+          signer,
+          hexToU8a(signature),
+          signingPayload,
+        );
+      }
+
+      // Try to submit the extrinsic
+      const txHash = await api.rpc.author.submitExtrinsic(extrinsic.toHex());
+      return {
+        result: txHash,
+        idempotent: false,
       };
     }
   } catch (e) {
