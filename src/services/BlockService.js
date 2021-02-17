@@ -30,7 +30,8 @@ async function getDefaultPayment() {
   };
 }
 
-async function getOperationAmountFromEvent(operationId, args, api) {
+async function getOperationAmountFromEvent(operationId, args, api, blockNumber) {
+  console.log('blockNumber', blockNumber)
   if (
     operationId === 'balances.transfer'
     || operationId === 'poamodule.txnfeesgiven'
@@ -47,12 +48,16 @@ async function getOperationAmountFromEvent(operationId, args, api) {
     if (!epochDetails) {
       epochDetailsCache[epochId] = epochDetails = await api.query.poAModule.epochs(epochNo);
     }
-
-    // mainnet blocks to check:
-    // https://fe.dock.io/?rpc=wss%3A%2F%2Fmainnet-node.dock.io#/explorer/query/3137682
     return api.createType('Balance', epochDetails.emission_for_treasury.toString());
   } else if (operationId === 'balances.balanceset') {
-    return '-100'; // TODO: for balance set we need the previous blocks balance for delta, this needs some thought to impl
+    const address = args[0];
+    const newBalance = args[1];
+    const previousBlockHash = await api.rpc.chain.getBlockHash((blockNumber.toNumber ? blockNumber.toNumber() : blockNumber) - 1);
+    const {
+      data: { free },
+    } = await api.query.system.account.at(previousBlockHash, address);
+    const deltaBalance = new BN(newBalance.toString()).sub(new BN(free.toString()));
+    return deltaBalance.toString();
   }
   return 0;
 }
@@ -141,6 +146,7 @@ async function processRecordToOp(
   allRecords,
   currency,
   networkIdentifier,
+  blockNumber,
 ) {
   const { event } = record;
   const operationId = `${event.section}.${event.method}`.toLowerCase();
@@ -158,7 +164,7 @@ async function processRecordToOp(
       api,
       networkIdentifier,
     );
-    const balanceAmount = await getOperationAmountFromEvent(operationId, args, api);
+    const balanceAmount = await getOperationAmountFromEvent(operationId, args, api, blockNumber);
     const sourceAccountAddress = getSourceAccountFromEvent(
       operationId,
       args,
@@ -196,6 +202,10 @@ async function getTransactions(
   // map between the extrinsics and events
   const extrinsicCount = currentBlock.block.extrinsics.length;
   const { extrinsics } = currentBlock.block;
+
+  // TODO:
+  const blockNumber = 10000; // currentBlock.block...
+
   const promises = extrinsics.map(async (extrinsic, index) => {
     const {
       method: { method, section, args },
@@ -259,6 +269,7 @@ async function getTransactions(
             allRecords,
             currency,
             networkIdentifier,
+            blockNumber,
           )));
       } else { // When an extrinsic fails we cant rely on the events to parse its operations
         const operationType = extrinsicOpMap[extrinsicMethod] || extrinsicMethod;
@@ -311,7 +322,7 @@ async function getTransactions(
   };
 }
 
-async function getTransactionsFromEvents(allRecords, api, currency, networkIdentifier) {
+async function getTransactionsFromEvents(allRecords, api, currency, networkIdentifier, blockNumber) {
   const extrinsicStatus = OPERATION_STATUS_SUCCESS;
   return (await Promise.all(
     allRecords.map(async (record) => {
@@ -325,6 +336,7 @@ async function getTransactionsFromEvents(allRecords, api, currency, networkIdent
         allRecords,
         currency,
         networkIdentifier,
+        blockNumber,
       );
       if (operations.length) {
         const transactionIdentifier = new Types.TransactionIdentifier(
@@ -427,6 +439,7 @@ const block = async (params) => {
     api,
     currency,
     networkIdentifier,
+    blockIndex,
   );
 
   // Add fees to system transactions
