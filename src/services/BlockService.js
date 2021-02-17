@@ -38,7 +38,7 @@ async function getOperationAmountFromEvent(operationId, args, api, blockNumber) 
     || operationId === 'poamodule.txnfeesgiven'
   ) {
     return api.createType('Balance', args[2]);
-  } else if (operationId === 'balances.reserved') {
+  } else if (operationId === 'balances.reserved' || operationId === 'balances.unreserved') {
     return api.createType('Balance', args[1]);
   } else if (operationId === 'balances.endowed') {
     return api.createType('Balance', args[1]);

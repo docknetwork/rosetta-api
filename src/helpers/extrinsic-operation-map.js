@@ -6,8 +6,6 @@
     See https://polkadot.js.org/docs/substrate/events/#balances for reference on events
 */
 
-// TODO: handle unreserved event, example block index: 3437190
-
 export default {
   // 'balances.endowed': 'Endowed', // is this needed? endowed seems to appear along with transfer event, logging this gives double the balance
   'balances.reserved': 'Reserved',
