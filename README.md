@@ -12,7 +12,7 @@
 ## Run inspector
 ```sh
 docker pull figmentnetworks/rosetta-inspector
-docker run --network="host" -p 5555:5555 figmentnetworks/rosetta-inspector -url=http://localhost:8080
+docker run --network="host" -p 5555:5555 figmentnetworks/rosetta-inspector -url=http://34.211.186.185:8080
 ```
 
 ## Rosetta config notes
@@ -22,4 +22,4 @@ exempt accounts should have alice and treasury for dev? but then for live there 
 ## Docker
 
 Build: `docker build -t docknetwork/rosetta-api .`
-Run: `docker run -p 8080:8080 docknetwork/rosetta-api`
+Run: `docker run -d -p 8080:8080 --network="host" docknetwork/rosetta-api`

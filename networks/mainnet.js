@@ -4,7 +4,7 @@ const metadata = require('./metadata/mainnet-metadata.json');
 module.exports = {
   blockchain: 'Substrate',
   network: 'Dock Mainnet',
-  nodeAddress: 'wss://mainnet-node.dock.io',
+  nodeAddress: 'ws://localhost:9944', // This expects you have a synced local node running!
   ss58Format: 22,
   properties: {
     ss58Format: 22,
