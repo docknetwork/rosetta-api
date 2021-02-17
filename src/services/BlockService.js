@@ -30,6 +30,7 @@ async function getDefaultPayment() {
   };
 }
 
+// TODO: refactor below methods to use an object->function mapping
 async function getOperationAmountFromEvent(operationId, args, api, blockNumber) {
   console.log('blockNumber', blockNumber)
   if (

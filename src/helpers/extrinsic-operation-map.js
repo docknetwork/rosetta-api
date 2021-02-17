@@ -1,10 +1,13 @@
 /*
-  This is a mapping of PolkadotJS/Substrate events to network operations  
+  This is a mapping of PolkadotJS/Substrate events to network operations
   NOTE:
     This mapping is potentially incomplete. Not all chains will implement all balance changing events (bounties, poa),
     more should be added as they are found in Dock's case. Hopefully this can be expanded upon by others too.
     See https://polkadot.js.org/docs/substrate/events/#balances for reference on events
 */
+
+// TODO: handle unreserved event, example block index: 3437190
+
 export default {
   // 'balances.endowed': 'Endowed', // is this needed? endowed seems to appear along with transfer event, logging this gives double the balance
   'balances.reserved': 'Reserved',
