@@ -12,7 +12,7 @@
 ## Run inspector
 ```sh
 docker pull figmentnetworks/rosetta-inspector
-docker run --network="host" -p 5555:5555 figmentnetworks/rosetta-inspector -url=http://34.211.186.185:8080
+docker run --network="host" -p 5555:5555 figmentnetworks/rosetta-inspector -url=http://localhost:8080
 ```
 
 ## Rosetta config notes
