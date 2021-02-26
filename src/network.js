@@ -40,10 +40,10 @@ fs.readdir(networksFolder, (error, files) => {
   if (error) {
     console.error(error);
   } else {
-    files.forEach(file => {
+    files.forEach((file) => {
       // Ensure file has .js extension in it, for either .js or .json
       if (file.indexOf('.js') > -1) {
-        const data = require('.' + networksFolder + '/' + file);
+        const data = require(`.${networksFolder}/${file}`);
         networks.push(new SubstrateNetworkIdentifier(data));
       }
     });

@@ -78,7 +78,7 @@ export async function getNetworkApiFromRequest(networkRequest) {
 
 export async function getNetworkConnection(networkIdentifier) {
   if (isOffline) {
-    throw new Error(`Server is in offline mode`);
+    throw new Error('Server is in offline mode');
   }
 
   const { nodeAddress } = networkIdentifier;

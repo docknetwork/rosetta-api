@@ -3,7 +3,6 @@ import BN from 'bn.js';
 
 import {
   decode,
-  createSigningPayload,
   getTxHash,
 } from '@substrate/txwrapper';
 
@@ -19,7 +18,6 @@ import {
 } from '@polkadot/util-crypto';
 
 import { EXTRINSIC_VERSION } from '@polkadot/types/extrinsic/v4/Extrinsic';
-import { createType, Metadata, TypeRegistry } from '@polkadot/types';
 
 import {
   ERROR_BROADCAST_TRANSACTION,
@@ -35,7 +33,7 @@ import {
   getNetworkIdentifierFromRequest,
 } from '../helpers/connections';
 
-import { buildTransferTxn, signTxn } from '../offline-signing';
+import { buildTransferTxn } from '../offline-signing';
 
 const Types = RosettaSDK.Client;
 

@@ -20,7 +20,7 @@ const operationStatuses = [
 
 // List of operation supported types
 const operationTypes = Object.keys(extrinsicOpMap)
-  .map(key => extrinsicOpMap[key]);
+  .map((key) => extrinsicOpMap[key]);
 
 /* Data API: Network */
 
@@ -31,12 +31,10 @@ const operationTypes = Object.keys(extrinsicOpMap)
  * metadataRequest MetadataRequest
  * returns NetworkListResponse
  * */
-const networkList = async () => new Types.NetworkListResponse(networkIdentifiers.map(({blockchain, network}) => {
-  return {
-    blockchain,
-    network,
-  };
-}));
+const networkList = async () => new Types.NetworkListResponse(networkIdentifiers.map(({ blockchain, network }) => ({
+  blockchain,
+  network,
+})));
 
 /**
  * Get Network Options

@@ -1,5 +1,6 @@
 import { cryptoWaitReady, encodeAddress } from '@polkadot/util-crypto';
 import { Keyring } from '@polkadot/keyring';
+
 const curveToTypeMap = {
   secp256k1: 'ecdsa',
   secp256r1: 'ecdsa',

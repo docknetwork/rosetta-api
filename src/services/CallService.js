@@ -1,6 +1,12 @@
 import RosettaSDK from 'rosetta-node-sdk';
 
 import {
+  hexToU8a,
+} from '@polkadot/util';
+import {
+  methods,
+} from '@substrate/txwrapper';
+import {
   ERROR_PARSE_INTENT,
   ERROR_POLKADOT_ERROR,
   throwError,
@@ -9,18 +15,6 @@ import {
 import {
   getNetworkApiFromRequest,
 } from '../helpers/connections';
-
-import {
-  hexToU8a,
-} from '@polkadot/util';
-
-import {
-  methods,
-} from '@substrate/txwrapper';
-
-import { buildTxn, signTxn } from '../offline-signing';
-
-const Types = RosettaSDK.Client;
 
 /* Data API: Call */
 
@@ -55,7 +49,7 @@ const call = async (params) => {
     from,
     blockHash,
     signingPayload,
-    args = []
+    args = [],
   } = parameters;
 
   // Try to execute the extrinsic or query
@@ -68,23 +62,22 @@ const call = async (params) => {
         result,
         idempotent: isQuery,
       };
-    } else {
-      // Check if signature, if so, add it
-      if (signature && signer) {
-        extrinsic.addSignature(
-          signer,
-          hexToU8a(signature),
-          signingPayload,
-        );
-      }
-
-      // Try to submit the extrinsic
-      const txHash = await api.rpc.author.submitExtrinsic(extrinsic.toHex());
-      return {
-        result: txHash,
-        idempotent: false,
-      };
     }
+    // Check if signature, if so, add it
+    if (signature && signer) {
+      extrinsic.addSignature(
+        signer,
+        hexToU8a(signature),
+        signingPayload,
+      );
+    }
+
+    // Try to submit the extrinsic
+    const txHash = await api.rpc.author.submitExtrinsic(extrinsic.toHex());
+    return {
+      result: txHash,
+      idempotent: false,
+    };
   } catch (e) {
     throwError(ERROR_POLKADOT_ERROR, e.toString());
   }

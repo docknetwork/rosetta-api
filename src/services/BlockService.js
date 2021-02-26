@@ -32,17 +32,17 @@ async function getDefaultPayment() {
 
 // TODO: refactor below methods to use an object->function mapping
 async function getOperationAmountFromEvent(operationId, args, api, blockNumber) {
-  console.log('blockNumber', blockNumber)
+  console.log('blockNumber', blockNumber);
   if (
     operationId === 'balances.transfer'
     || operationId === 'poamodule.txnfeesgiven'
   ) {
     return api.createType('Balance', args[2]);
-  } else if (operationId === 'balances.reserved' || operationId === 'balances.unreserved') {
+  } if (operationId === 'balances.reserved' || operationId === 'balances.unreserved') {
     return api.createType('Balance', args[1]);
-  } else if (operationId === 'balances.endowed') {
+  } if (operationId === 'balances.endowed') {
     return api.createType('Balance', args[1]);
-  } else if (operationId === 'poamodule.epochends') {
+  } if (operationId === 'poamodule.epochends') {
     const epochNo = args[0];
     const epochId = epochNo.toString();
     let epochDetails = epochDetailsCache[epochId];
@@ -50,7 +50,7 @@ async function getOperationAmountFromEvent(operationId, args, api, blockNumber) 
       epochDetailsCache[epochId] = epochDetails = await api.query.poAModule.epochs(epochNo);
     }
     return api.createType('Balance', epochDetails.emission_for_treasury.toString());
-  } else if (operationId === 'balances.balanceset') {
+  } if (operationId === 'balances.balanceset') {
     const address = args[0];
     const newBalance = args[1];
     const previousBlockHash = await api.rpc.chain.getBlockHash((blockNumber.toNumber ? blockNumber.toNumber() : blockNumber) - 1);
@@ -345,7 +345,8 @@ async function getTransactionsFromEvents(allRecords, api, currency, networkIdent
         );
         return new Types.Transaction(transactionIdentifier, operations);
       }
-    })))
+    }),
+  ))
     .filter((event) => event !== undefined);
 }
 
