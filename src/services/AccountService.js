@@ -1,8 +1,6 @@
 import RosettaSDK from 'rosetta-node-sdk';
 
 import {
-  getNetworkConnection,
-  getNetworkIdentifier,
   getNetworkApiFromRequest,
   getNetworkCurrencyFromRequest,
 } from '../helpers/connections';
@@ -62,7 +60,7 @@ const balance = async (params) => {
   return new Types.AccountBalanceResponse(validBlock, [validAmount]);
 };
 
-const coins = async (params) => {
+const coins = async () => {
   throwError(ERROR_NOT_IMPLEMENTED);
 };
 

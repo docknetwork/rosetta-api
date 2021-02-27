@@ -16,10 +16,8 @@ const Types = RosettaSDK.Client;
  * mempoolRequest MempoolRequest
  * returns MempoolResponse
  * */
-const mempool = async (params) =>
-  // No mempool transactions for substrate, assumes block time is within few seconds
-  Types.MempoolResponse([])
-;
+// No mempool transactions for substrate, assumes block time is within few seconds
+const mempool = async () => Types.MempoolResponse([]);
 
 /**
  * Get a Mempool Transaction
@@ -28,7 +26,7 @@ const mempool = async (params) =>
  * mempoolTransactionRequest MempoolTransactionRequest
  * returns MempoolTransactionResponse
  * */
-const mempoolTransaction = async (params) => {
+const mempoolTransaction = async () => {
   throwError(ERROR_TX_INVALID);
 };
 

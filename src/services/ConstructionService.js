@@ -142,8 +142,9 @@ const constructionCombine = async (params) => {
   const { constructionCombineRequest } = params;
   console.log('constructionCombineRequest', params);
   const registry = getNetworkRegistryFromRequest(constructionCombineRequest);
-  const { unsigned_transaction, signatures } = constructionCombineRequest;
-  const unsignedTxJSON = JSON.parse(unsigned_transaction);
+  const { signatures } = constructionCombineRequest;
+  const unsignedTx = constructionCombineRequest.unsigned_transaction;
+  const unsignedTxJSON = JSON.parse(unsignedTx);
 
   // Get signature hex
   const signatureHex = `0x${signatures[0].hex_bytes}`;
@@ -158,7 +159,7 @@ const constructionCombine = async (params) => {
   }
 
   // Re-construct extrinsic
-  const { transaction, extrinsic } = jsonToTx(unsigned_transaction, {
+  const { transaction } = jsonToTx(unsignedTx, {
     metadataRpc: registry.metadata,
     registry,
   });

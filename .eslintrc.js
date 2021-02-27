@@ -26,6 +26,8 @@ module.exports = {
     "no-plusplus": "off",
     "max-len": "off",
     "no-console": "off",
+    "import/no-dynamic-require": "off",
+    "global-require": "off",
     "no-restricted-syntax": [
       "error",
       {

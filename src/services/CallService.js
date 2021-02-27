@@ -1,11 +1,11 @@
-import RosettaSDK from 'rosetta-node-sdk';
-
 import {
   hexToU8a,
 } from '@polkadot/util';
+
 import {
   methods,
 } from '@substrate/txwrapper';
+
 import {
   ERROR_PARSE_INTENT,
   ERROR_POLKADOT_ERROR,
@@ -46,7 +46,6 @@ const call = async (params) => {
   const {
     signature,
     signer,
-    from,
     blockHash,
     signingPayload,
     args = [],
@@ -83,6 +82,7 @@ const call = async (params) => {
   }
 
   throwError(ERROR_PARSE_INTENT);
+  return {};
 };
 
 module.exports = {

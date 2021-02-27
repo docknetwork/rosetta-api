@@ -32,7 +32,6 @@ class SubstrateNetworkConnection {
 
 export function getNetworkCurrencyFromRequest(networkRequest) {
   const targetNetworkIdentifier = networkRequest.network_identifier || networkIdentifiers[0];
-  const { blockchain, network } = targetNetworkIdentifier;
   const networkIdentifier = getNetworkIdentifier(targetNetworkIdentifier);
   if (networkIdentifier) {
     const { nodeAddress, properties } = networkIdentifier;
