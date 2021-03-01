@@ -33,7 +33,7 @@ import {
   getNetworkIdentifierFromRequest,
 } from '../helpers/connections';
 
-import { buildTransferTxn } from '../offline-signing';
+import buildTransferTxn from '../offline-signing/txns';
 
 const Types = RosettaSDK.Client;
 
@@ -273,7 +273,6 @@ const constructionParse = async (params) => {
         metadataRpc: registry.metadata,
         registry,
       },
-      signed,
     );
 
     const parsedTxn = parsedTx.transaction;
@@ -415,14 +414,12 @@ const constructionPayloads = async (params) => {
   const signingPayload = u8aToHex(actualPayload);
 
   // Create an array of payloads that must be signed by the caller
-  const payloads = [
-    {
-      address: senderAddress,
-      account_identifier: new Types.AccountIdentifier(senderAddress),
-      hex_bytes: signingPayload.substr(2),
-      signature_type: signatureType,
-    },
-  ];
+  const payloads = [{
+    address: senderAddress,
+    account_identifier: new Types.AccountIdentifier(senderAddress),
+    hex_bytes: signingPayload.substr(2),
+    signature_type: signatureType,
+  }];
 
   const unsignedTransaction = JSON.stringify(txParams);
   return new Types.ConstructionPayloadsResponse(unsignedTransaction, payloads);
@@ -444,8 +441,7 @@ const constructionPreprocess = async (params) => {
   const { operations } = constructionPreprocessRequest;
 
   // Gather public keys needed for TXs
-  const requiredPublicKeys = operations.map((operation) => new Types.AccountIdentifier(operation.account.address), // TODO: do we need address or pks?
-  );
+  const requiredPublicKeys = operations.map((operation) => new Types.AccountIdentifier(operation.account.address));
 
   const senderAddress = operations
     .filter((operation) => new BN(operation.amount.value).isNeg())

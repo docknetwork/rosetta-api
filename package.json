@@ -48,6 +48,10 @@
   "dependencies": {
     "bn.js": "^4.11.9",
     "@polkadot/api": "3.3.1",
+    "@polkadot/types": "3.3.1",
+    "@polkadot/types-known": "3.3.1",
+    "@polkadot/keyring": "^5.2.3",
+    "@polkadot/util": "^5.2.3",
     "@polkadot/util-crypto": "^5.2.3",
     "@substrate/txwrapper": "3.10.6",
     "rosetta-node-sdk": "docknetwork/rosetta-node-sdk"

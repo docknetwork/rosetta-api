@@ -28,6 +28,7 @@ module.exports = {
     "no-console": "off",
     "import/no-dynamic-require": "off",
     "global-require": "off",
+    "prefer-destructuring": "off",
     "no-restricted-syntax": [
       "error",
       {

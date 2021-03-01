@@ -5,7 +5,7 @@ import { createMetadata } from '@substrate/txwrapper/lib/util/metadata';
 /**
  * A registry class that stores the types, metadata and chain information.
  */
-export class Registry {
+export default class Registry {
   constructor({ chainInfo, metadata, types }) {
     createMetadata.clear();
 

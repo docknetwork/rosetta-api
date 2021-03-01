@@ -2,8 +2,7 @@ import { ApiPromise, WsProvider } from '@polkadot/api';
 import RosettaSDK from 'rosetta-node-sdk';
 
 import networkIdentifiers from '../network';
-
-import { Registry } from '../offline-signing';
+import Registry from '../offline-signing/registry';
 
 const connections = {};
 const registries = {};

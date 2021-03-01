@@ -1,6 +1,4 @@
-import { EXTRINSIC_VERSION } from '@polkadot/types/extrinsic/v4/Extrinsic';
 import {
-  createSignedTx,
   createSigningPayload,
   methods,
 } from '@substrate/txwrapper';
@@ -19,7 +17,7 @@ import {
  * @param params.registry - This is an instance of `Registry` class
  * @return {{unsignedTxn: Object, signingPayload: string}}
  */
-export function buildTransferTxn({
+export default function buildTransferTxn({
   from,
   to,
   value,
