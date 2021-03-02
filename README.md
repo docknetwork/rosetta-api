@@ -13,12 +13,12 @@ Run `yarn dev` to run a development instance of the API. Default port is 8080. C
 - rosetta-cli/testnet/config.json (connects to dock testnet directly)
 
 ## Starting
-Online mode: `yarn start`
-Offline mode: `yarn start-offline`
+- Online mode: `yarn start`
+- Offline mode: `yarn start-offline`
 
 ## Starting with Docker
-Build: `docker build -t docknetwork/rosetta-api .`
-Run: `docker run -d -p 8080:8080 --network="host" docknetwork/rosetta-api`
+- Run: `docker run -d --network="host" docknetwork/rosetta-api`
+- Build: `docker build -t docknetwork/rosetta-api .`
 
 ## Inspecting/Debugging
 We use Rosetta Inspector to check that the API is running properly, you can do that like so using Docker:
