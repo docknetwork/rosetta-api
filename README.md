@@ -27,5 +27,6 @@ docker pull figmentnetworks/rosetta-inspector
 docker run --network="host" -p 5555:5555 figmentnetworks/rosetta-inspector -url=http://localhost:8080
 ```
 
-## Potential optimizations
+## Potential improvements
 - Memory caching solution for block/transaction info
+- Write tests
