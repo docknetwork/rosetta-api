@@ -37,7 +37,6 @@
     "eslint-config-airbnb-base": "^14.1.0",
     "eslint-plugin-import": "^2.20.2",
     "eslint-plugin-jest": "^23.8.2",
-    "eslint-plugin-sonarjs": "0.5.0",
     "jest": "^26.6.0",
     "jest-html-reporters": "^2.1.0",
     "nodemon": "^2.0.6",

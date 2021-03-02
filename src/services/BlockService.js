@@ -4,8 +4,6 @@ import { u8aToHex } from '@polkadot/util';
 import BN from 'bn.js';
 
 import {
-  getNetworkConnection,
-  getNetworkIdentifier,
   getNetworkApiFromRequest,
   getNetworkCurrencyFromRequest,
   getNetworkIdentifierFromRequest,
@@ -32,22 +30,20 @@ async function getDefaultPayment() {
 
 // TODO: refactor below methods to use an object->function mapping
 async function getOperationAmountFromEvent(operationId, args, api, blockNumber) {
-  console.log('blockNumber', blockNumber);
   if (
     operationId === 'balances.transfer'
     || operationId === 'poamodule.txnfeesgiven'
   ) {
     return api.createType('Balance', args[2]);
-  } if (operationId === 'balances.reserved' || operationId === 'balances.unreserved') {
-    return api.createType('Balance', args[1]);
-  } if (operationId === 'balances.endowed') {
+  } if (operationId === 'balances.reserved' || operationId === 'balances.unreserved' || operationId === 'balances.endowed') {
     return api.createType('Balance', args[1]);
   } if (operationId === 'poamodule.epochends') {
     const epochNo = args[0];
     const epochId = epochNo.toString();
     let epochDetails = epochDetailsCache[epochId];
     if (!epochDetails) {
-      epochDetailsCache[epochId] = epochDetails = await api.query.poAModule.epochs(epochNo);
+      epochDetails = await api.query.poAModule.epochs(epochNo);
+      epochDetailsCache[epochId] = epochDetails;
     }
     return api.createType('Balance', epochDetails.emission_for_treasury.toString());
   } if (operationId === 'balances.balanceset') {
@@ -75,10 +71,12 @@ function getEffectedAccountFromEvent(operationId, args, api, networkIdentifier) 
   return args[0];
 }
 
-function getSourceAccountFromEvent(operationId, args, api) {
+function getSourceAccountFromEvent(operationId, args) {
   if (operationId === 'balances.transfer') {
     return args[0];
   }
+
+  return '';
 }
 
 function getEffectedAccountFromExtrinsic(api, extrinsic, extrinsicMethod) {
@@ -88,16 +86,19 @@ function getEffectedAccountFromExtrinsic(api, extrinsic, extrinsicMethod) {
   ) {
     return extrinsic.method.args[0].toString();
   }
+
+  return '';
 }
 
 function getOperationAmountFromExtrinsic(api, extrinsic, extrinsicMethod) {
-  // console.log('operationType', extrinsicMethod, extrinsic.toHuman(), extrinsic.method.args[0], extrinsic.method.args[1]);
   if (
     extrinsicMethod === 'balances.transfer'
     || extrinsicMethod === 'balances.transferkeepalive'
   ) {
     return api.createType('Balance', extrinsic.method.args[1]);
   }
+
+  return 0;
 }
 
 function getSourceAccountFromExtrinsic(extrinsic) {
@@ -169,8 +170,6 @@ async function processRecordToOp(
     const sourceAccountAddress = getSourceAccountFromEvent(
       operationId,
       args,
-      api,
-      allRecords,
     );
 
     addToOperations(
@@ -201,16 +200,12 @@ async function getTransactions(
   const fees = [];
 
   // map between the extrinsics and events
-  const extrinsicCount = currentBlock.block.extrinsics.length;
   const { extrinsics } = currentBlock.block;
-
-  // TODO:
-  const blockNumber = 10000; // currentBlock.block...
+  const blockNumber = currentBlock.block.header.number.toNumber();
 
   const promises = extrinsics.map(async (extrinsic, index) => {
     const {
       method: { method, section, args },
-      signer,
       hash,
     } = extrinsic;
     const extrinsicMethod = `${section}.${method}`.toLowerCase();
@@ -226,8 +221,6 @@ async function getTransactions(
 
     let paysFee = false;
     if (!shouldDisplay || shouldDisplay(section, method, hash)) {
-      const sourceAccountAddress = signer.toString();
-
       // Get extrinsic status/fee info
       let extrinsicStatus = OPERATION_STATUS_UNKNOWN;
       allRecords
@@ -261,7 +254,7 @@ async function getTransactions(
           .filter(
             ({ phase }) => phase.isApplyExtrinsic && phase.asApplyExtrinsic.eq(index),
           )
-          .map(async (record, index) => processRecordToOp(
+          .map(async (record) => processRecordToOp(
             api,
             record,
             operations,
@@ -345,6 +338,8 @@ async function getTransactionsFromEvents(allRecords, api, currency, networkIdent
         );
         return new Types.Transaction(transactionIdentifier, operations);
       }
+
+      return null;
     }),
   ))
     .filter((event) => event !== undefined);
@@ -381,7 +376,7 @@ const block = async (params) => {
     const blockIdentifier = new Types.BlockIdentifier(blockIndex, blockHash);
 
     // Define block format
-    const block = new Types.Block(
+    const blockTyped = new Types.Block(
       blockIdentifier,
       blockIdentifier,
       timestamp,
@@ -389,7 +384,7 @@ const block = async (params) => {
     );
 
     // Format data into block response
-    return new Types.BlockResponse(block, []);
+    return new Types.BlockResponse(blockTyped, []);
   }
 
   // Get block info and set index if not set
@@ -413,11 +408,11 @@ const block = async (params) => {
   // Get payment infos for all extrinsics
   const paymentInfoPromises = [];
   const { extrinsics } = currentBlock.block;
-  for (let index = 0; index < extrinsics.length; index++) {
-    const extrinsic = extrinsics[index];
+  for (let i = 0; i < extrinsics.length; i++) {
+    const extrinsic = extrinsics[i];
     const prom = api.rpc.payment
       .queryInfo(extrinsic.toHex(), blockHash)
-      .catch((e) => getDefaultPayment());
+      .catch(() => getDefaultPayment());
     paymentInfoPromises.push(prom);
   }
 
@@ -462,7 +457,7 @@ const block = async (params) => {
   }
 
   // Define block format
-  const block = new Types.Block(
+  const blockTyped = new Types.Block(
     blockIdentifier,
     parentBlockIdentifier,
     timestamp,
@@ -470,7 +465,7 @@ const block = async (params) => {
   );
 
   // Format data into block response
-  return new Types.BlockResponse(block);
+  return new Types.BlockResponse(blockTyped);
 };
 
 /**
@@ -484,7 +479,7 @@ const blockTransaction = async (params) => {
   const { blockTransactionRequest } = params;
   const api = await getNetworkApiFromRequest(blockTransactionRequest);
   const currency = getNetworkCurrencyFromRequest(blockTransactionRequest);
-  const networkIdentifier = getNetworkIdentifierFromRequest(blockRequest);
+  const networkIdentifier = getNetworkIdentifierFromRequest(blockTransactionRequest);
   const { index, hash } = blockTransactionRequest.block_identifier;
 
   // Get block hash if not set
@@ -502,11 +497,11 @@ const blockTransaction = async (params) => {
 
   const txIdentifier = blockTransactionRequest.transaction_identifier;
   const allRecords = await api.query.system.events.at(blockHash);
-  const { transactions, fees } = await getTransactions(
+  const { transactions } = await getTransactions(
     currentBlock,
     allRecords,
     api,
-    (section, method, hash) => hash.toString() === txIdentifier.hash.toString(),
+    (section, method, txhash) => txhash.toString() === txIdentifier.hash.toString(),
     blockHash,
     [],
     currency,

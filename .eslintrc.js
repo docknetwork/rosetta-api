@@ -1,5 +1,5 @@
 module.exports = {
-  "plugins": ["jest", "sonarjs"],
+  "plugins": ["jest"],
   "globals": {
     "process": "readonly"
   },
@@ -7,7 +7,7 @@ module.exports = {
     "browser": true,
     "es6": true
   },
-  "extends": ["plugin:sonarjs/recommended", "eslint:recommended", "plugin:jest/recommended", "airbnb-base"],
+  "extends": ["eslint:recommended", "plugin:jest/recommended", "airbnb-base"],
   "parserOptions": {
     "ecmaVersion": 2018,
     "sourceType": "module"
