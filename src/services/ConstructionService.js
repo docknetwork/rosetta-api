@@ -219,7 +219,6 @@ const constructionDerive = async (params) => {
  * */
 const constructionHash = async (params) => {
   const { constructionHashRequest } = params;
-  console.log('constructionHash', params);
   const registry = getNetworkRegistryFromRequest(constructionHashRequest);
   const { extrinsic } = jsonToTx(constructionHashRequest.signed_transaction, {
     metadataRpc: registry.metadata,
@@ -242,7 +241,6 @@ const constructionHash = async (params) => {
  * */
 const constructionParse = async (params) => {
   const { constructionParseRequest } = params;
-  console.log('constructionParseRequest', params);
   const { signed, transaction } = constructionParseRequest;
   const registry = getNetworkRegistryFromRequest(constructionParseRequest);
   const currency = getNetworkCurrencyFromRequest(constructionParseRequest);
@@ -338,7 +336,6 @@ const constructionParse = async (params) => {
 const constructionPayloads = async (params) => {
   const { constructionPayloadsRequest } = params;
   const { operations } = constructionPayloadsRequest;
-  console.log('constructionPayloads', constructionPayloadsRequest);
 
   // Must have 2 operations, send and receive
   if (operations.length !== 2) {
@@ -369,10 +366,6 @@ const constructionPayloads = async (params) => {
 
   const senderAddress = sendOp.account.address;
   const toAddress = receiveOp.account.address;
-
-  // TODO: provide proper signature type from public_keys in request
-  const signatureType = 'ed25519';
-
   const {
     nonce,
     eraPeriod,
@@ -413,6 +406,10 @@ const constructionPayloads = async (params) => {
   const actualPayload = extrinsicPayload.toU8a({ method: true });
   const signingPayload = u8aToHex(actualPayload);
 
+  // TODO: provide proper signature type from public_keys in request
+  console.log('constructionPayloads', constructionPayloadsRequest);
+  const signatureType = 'ed25519';
+
   // Create an array of payloads that must be signed by the caller
   const payloads = [{
     address: senderAddress,
@@ -437,7 +434,6 @@ const constructionPayloads = async (params) => {
  * */
 const constructionPreprocess = async (params) => {
   const { constructionPreprocessRequest } = params;
-  console.log('constructionPreprocess', constructionPreprocessRequest);
   const { operations } = constructionPreprocessRequest;
 
   // Gather public keys needed for TXs

@@ -339,7 +339,7 @@ async function getTransactionsFromEvents(allRecords, api, currency, networkIdent
         return new Types.Transaction(transactionIdentifier, operations);
       }
 
-      return null;
+      return undefined;
     }),
   ))
     .filter((event) => event !== undefined);
