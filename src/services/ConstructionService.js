@@ -37,6 +37,12 @@ import buildTransferTxn from '../offline-signing/txns';
 
 const Types = RosettaSDK.Client;
 
+const sigTypeEnum = {
+  ed25519: 0,
+  sr25519: 1,
+  ecdsa: 2,
+};
+
 function jsonToTx(transaction, options = {}) {
   const txParams = JSON.parse(transaction);
   const { unsignedTxn, signingPayload } = buildTransferTxn({
@@ -140,13 +146,13 @@ const constructionSubmit = async (params) => {
  * */
 const constructionCombine = async (params) => {
   const { constructionCombineRequest } = params;
-  console.log('constructionCombineRequest', params);
   const registry = getNetworkRegistryFromRequest(constructionCombineRequest);
   const { signatures } = constructionCombineRequest;
   const unsignedTx = constructionCombineRequest.unsigned_transaction;
   const unsignedTxJSON = JSON.parse(unsignedTx);
 
-  // Get signature hex
+  // Get signature info
+  const signatureType = signatures[0].signature_type.toLowerCase();
   const signatureHex = `0x${signatures[0].hex_bytes}`;
   const signingPayload = `0x${signatures[0].signing_payload.hex_bytes}`;
 
@@ -178,8 +184,8 @@ const constructionCombine = async (params) => {
   }
 
   // Generate header byte
-  const headerU8a = new Uint8Array(1); // enum Ed25519, Sr25519, Ecdsa
-  headerU8a[0] = 0; // TODO: get from signature type
+  const headerU8a = new Uint8Array(1);
+  headerU8a[0] = sigTypeEnum[signatureType] || 0;
 
   // Append signature type header then create a signed transaction
   const signatureWithHeader = u8aConcat(headerU8a, signatureU8a);
@@ -344,7 +350,6 @@ const constructionPayloads = async (params) => {
 
   // Sort by sender/reciever
   const senderOperations = operations.filter((operation) => new BN(operation.amount.value).isNeg());
-
   const receiverOperations = operations.filter(
     (operation) => !new BN(operation.amount.value).isNeg(),
   );
@@ -405,9 +410,6 @@ const constructionPayloads = async (params) => {
   // With the `ExtrinsicPayload` class, construct the actual payload to sign.
   const actualPayload = extrinsicPayload.toU8a({ method: true });
   const signingPayload = u8aToHex(actualPayload);
-
-  // TODO: provide proper signature type from public_keys in request
-  console.log('constructionPayloads', constructionPayloadsRequest);
   const signatureType = 'ed25519';
 
   // Create an array of payloads that must be signed by the caller
