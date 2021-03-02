@@ -1,25 +1,28 @@
-## TODO: write this properly
+## Substrate/PolkadotJS Rosetta API
+This is Dock's implementation of the Rosetta API for our Subsrate blockchain, written in NodeJS using PolkadotJS. Currently in development but mostly done. Any suggestions or improvements are welcome. This isn't considered production ready yet but you can go ahead and try it.
 
-## Dev
+## Prerequisites
+Install Yarn or NPM, run the usual `yarn install` or `npm install`. Note the configuration files in the `networks` directory. To add a custom network, copy one of the files and change the parameters. You will need to also export your chain metadata and ensure its defined in the network configuration.
 
-`yarn dev` or `nodemon`
+Network configuration files are automatically loaded when the API initializes.
 
-## Start
+## Development
+Run `yarn dev` to run a development instance of the API. Default port is 8080. Check the rosetta-cli configuration files in `/rosetta-cli`. Rosetta CLI usage is better documented here, but the main files to check are:
+- rosetta-cli/devnode/config.json (connects to local substrate node)
+- rosetta-cli/mainnet/config.json (connects to local mainnet node)
+- rosetta-cli/testnet/config.json (connects to dock testnet directly)
 
-`yarn start`
+## Starting
+Online mode: `yarn start`
+Offline mode: `yarn start-offline`
 
+## Starting with Docker
+Build: `docker build -t docknetwork/rosetta-api .`
+Run: `docker run -d -p 8080:8080 --network="host" docknetwork/rosetta-api`
 
-## Run inspector
+## Inspecting/Debugging
+We use Rosetta Inspector to check that the API is running properly, you can do that like so using Docker:
 ```sh
 docker pull figmentnetworks/rosetta-inspector
 docker run --network="host" -p 5555:5555 figmentnetworks/rosetta-inspector -url=http://localhost:8080
 ```
-
-## Rosetta config notes
-
-exempt accounts should have alice and treasury for dev? but then for live there are issues, need to track proper epoch rewards
-
-## Docker
-
-Build: `docker build -t docknetwork/rosetta-api .`
-Run: `docker run -d -p 8080:8080 --network="host" docknetwork/rosetta-api`
