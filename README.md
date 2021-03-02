@@ -26,3 +26,6 @@ We use Rosetta Inspector to check that the API is running properly, you can do t
 docker pull figmentnetworks/rosetta-inspector
 docker run --network="host" -p 5555:5555 figmentnetworks/rosetta-inspector -url=http://localhost:8080
 ```
+
+## Potential optimizations
+- Memory caching solution for block/transaction info
